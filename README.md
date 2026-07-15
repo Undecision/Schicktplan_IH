@@ -39,13 +39,19 @@ docker compose --env-file .env -f infra/docker-compose.yml up -d postgres minio
 # 4. Datenbank-Schema anwenden
 pnpm --filter @schichtbuch/api prisma:migrate
 
-# 5. Backend & Frontend im Dev-Modus starten (zwei Terminals)
+# 5. Stammdaten + ersten Administrator anlegen
+#    (BOOTSTRAP_ADMIN_EMAIL/-PASSWORD aus .env, siehe .env.example)
+pnpm --filter @schichtbuch/api prisma:seed
+
+# 6. Backend & Frontend im Dev-Modus starten (zwei Terminals)
 pnpm dev:api
 pnpm dev:web
 ```
 
 Backend läuft dann unter `http://localhost:3000/api`, Swagger-Doku unter
-`http://localhost:3000/api/docs`. Frontend läuft unter `http://localhost:5173`.
+`http://localhost:3000/api/docs`. Frontend läuft unter `http://localhost:5173`
+(mit Dev-Proxy `/api` → Backend, siehe `apps/web/vite.config.ts`) – Login mit
+den `BOOTSTRAP_ADMIN_*`-Zugangsdaten aus `.env`.
 
 ## Produktions-Deployment
 
@@ -82,4 +88,6 @@ Administrator · Meister/Schichtleiter · Instandhalter · Leseberechtigte.
 
 Dieses Repository wird entlang der Phasen 0–11 des Lastenhefts aufgebaut
 (Fundament → Auth/RBAC → Stammdaten → Schichtbucheinträge → … → Härtung/DSGVO).
-Der aktuelle Stand: **Phase 0 – Fundament** abgeschlossen.
+Der aktuelle Stand: **Phase 0 (Fundament)** und **Phase 1 (Auth & RBAC)**
+abgeschlossen – lokale Anmeldung, RBAC-Guards, Audit-Log-Fundament und
+Benutzerverwaltung sind funktionsfähig.

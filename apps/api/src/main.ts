@@ -1,4 +1,5 @@
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 import { NestFactory } from "@nestjs/core";
 import { ConfigService } from "@nestjs/config";
 import { ValidationPipe } from "@nestjs/common";
@@ -14,6 +15,7 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
 
   app.use(helmet());
+  app.use(cookieParser());
   app.enableCors({
     origin: configService.get("cors", { infer: true }).origin,
     credentials: true,

@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { Module } from "@nestjs/common";
-import { APP_FILTER } from "@nestjs/core";
+import { APP_FILTER, APP_INTERCEPTOR } from "@nestjs/core";
 import { ConfigModule, ConfigService } from "@nestjs/config";
+import { ThrottlerModule } from "@nestjs/throttler";
 import { LoggerModule } from "nestjs-pino";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
@@ -11,6 +12,10 @@ import { HealthModule } from "./health/health.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { StorageModule } from "./storage/storage.module";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
+import { AuditModule } from "./audit/audit.module";
+import { AuditInterceptor } from "./audit/audit.interceptor";
+import { AuthModule } from "./auth/auth.module";
+import { UsersModule } from "./users/users.module";
 
 @Module({
   imports: [
@@ -34,8 +39,14 @@ import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
         };
       },
     }),
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60_000, limit: 60 }],
+    }),
     PrismaModule,
     StorageModule,
+    AuditModule,
+    AuthModule,
+    UsersModule,
     HealthModule,
   ],
   controllers: [AppController],
@@ -44,6 +55,10 @@ import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
     },
   ],
 })

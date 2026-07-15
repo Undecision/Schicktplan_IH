@@ -28,8 +28,20 @@ Konventionen für neue Modelle: siehe Kommentar-Header in `prisma/schema.prisma`
 
 ## Endpunkte
 
-- `GET /api/health` – Liveness/Readiness (DB + MinIO)
+- `GET /api/health` – Liveness/Readiness (DB + MinIO), öffentlich
 - `GET /api/docs` – Swagger/OpenAPI
+- `POST /api/auth/login`, `POST /api/auth/refresh`, `POST /api/auth/logout`,
+  `GET /api/auth/me` – lokale Authentifizierung (Argon2, JWT-Access +
+  httpOnly-Refresh-Cookie)
+- `GET/POST/PATCH /api/users`, `POST /api/users/:id/deactivate`,
+  `POST /api/users/:id/reset-password` – Benutzerverwaltung
+  (`admin:benutzer:manage`)
+- `GET /api/gewerke` – Gewerke-Liste (nur lesend, für Benutzerformular; volle
+  Verwaltung folgt in Phase 2)
+
+Alle Endpunkte außer `/health`, `/` und `/auth/login|refresh|logout` verlangen
+einen gültigen `Authorization: Bearer <accessToken>`-Header (siehe
+`@RequirePermissions()`/`PermissionsGuard` in `src/auth`).
 
 ## Tests
 

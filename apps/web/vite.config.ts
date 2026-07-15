@@ -13,6 +13,15 @@ export default defineConfig({
   server: {
     host: true,
     port: Number(process.env.WEB_PORT) || 5173,
+    // Spiegelt Caddys Produktiv-Routing (/api -> api-Container) für den Dev-Server.
+    // Verhindert insbesondere, dass unter "/api/*" der SPA-History-Fallback
+    // (index.html, Status 200) statt eines echten 401/404 zurückkommt.
+    proxy: {
+      "/api": {
+        target: `http://localhost:${process.env.API_PORT || 3000}`,
+        changeOrigin: true,
+      },
+    },
   },
   test: {
     environment: "jsdom",

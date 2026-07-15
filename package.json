@@ -15,7 +15,8 @@
     "build": "pnpm -r --if-present build",
     "dev:api": "pnpm --filter @schichtbuch/api dev",
     "dev:web": "pnpm --filter @schichtbuch/web dev",
-    "prepare": "husky"
+    "prepare": "husky",
+    "postinstall": "pnpm --filter @schichtbuch/shared build"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
@@ -41,7 +42,8 @@
       "@prisma/engines",
       "prisma",
       "@scarf/scarf",
-      "unrs-resolver"
+      "unrs-resolver",
+      "argon2"
     ]
   }
 }

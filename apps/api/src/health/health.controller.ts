@@ -1,6 +1,7 @@
 import { Controller, Get } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { HealthCheck, HealthCheckService } from "@nestjs/terminus";
+import { Public } from "../auth/decorators/public.decorator";
 import { PrismaHealthIndicator } from "./indicators/prisma.health";
 import { MinioHealthIndicator } from "./indicators/minio.health";
 
@@ -13,6 +14,7 @@ export class HealthController {
     private readonly minioHealth: MinioHealthIndicator,
   ) {}
 
+  @Public()
   @Get()
   @HealthCheck()
   check() {

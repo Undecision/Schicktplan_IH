@@ -5,17 +5,48 @@ import { SchichtbuchPage } from "@/pages/schichtbuch-page";
 import { UebergabePage } from "@/pages/uebergabe-page";
 import { BerichtePage } from "@/pages/berichte-page";
 import { AdminPage } from "@/pages/admin-page";
+import { LoginPage } from "@/features/auth/login-page";
+import { RequireAuth, RequirePermissionRoute } from "@/features/auth/protected-route";
 
 export const router = createBrowserRouter([
+  { path: "/login", element: <LoginPage /> },
   {
     path: "/",
-    element: <AppShell />,
+    element: (
+      <RequireAuth>
+        <AppShell />
+      </RequireAuth>
+    ),
     children: [
-      { index: true, element: <DashboardPage /> },
-      { path: "schichtbuch", element: <SchichtbuchPage /> },
-      { path: "uebergabe", element: <UebergabePage /> },
-      { path: "berichte", element: <BerichtePage /> },
-      { path: "admin", element: <AdminPage /> },
+      {
+        index: true,
+        element: <DashboardPage />,
+        handle: { title: "Dashboard", subtitle: "Überblick über die aktuelle Schicht" },
+      },
+      {
+        path: "schichtbuch",
+        element: <SchichtbuchPage />,
+        handle: { title: "Schichtbuch", subtitle: "Einträge der Instandhaltung" },
+      },
+      {
+        path: "uebergabe",
+        element: <UebergabePage />,
+        handle: { title: "Schichtübergabe", subtitle: "Übergabe an die nächste Schicht" },
+      },
+      {
+        path: "berichte",
+        element: <BerichtePage />,
+        handle: { title: "Berichte", subtitle: "Schicht-, Tages- und Wochenberichte" },
+      },
+      {
+        path: "admin",
+        element: (
+          <RequirePermissionRoute permission="admin:benutzer:manage">
+            <AdminPage />
+          </RequirePermissionRoute>
+        ),
+        handle: { title: "Admin", subtitle: "Benutzer- und Stammdatenverwaltung" },
+      },
     ],
   },
 ]);
