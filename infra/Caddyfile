@@ -1,0 +1,26 @@
+# Caddy Reverse Proxy – terminiert TLS, routet /api -> api, / -> web.
+#
+# Standard: Caddys interne CA (selbstsigniertes Zertifikat) – passend für den
+# internen LXC-Betrieb ohne öffentliche DNS-Auflösung. Für eine öffentlich
+# erreichbare Domain kann `tls internal` entfernt werden, Caddy holt dann
+# automatisch ein Let's-Encrypt-Zertifikat (ACME HTTP-01, Port 80/443 nötig).
+
+{$CADDY_DOMAIN} {
+	encode gzip zstd
+
+	tls internal
+
+	@api path /api/*
+	handle @api {
+		reverse_proxy api:{$API_PORT}
+	}
+
+	handle {
+		reverse_proxy web:80
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

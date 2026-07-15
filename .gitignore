@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+apps/web/dist/
+apps/api/dist/
+
+# Env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Test / coverage
+coverage/
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.claude/
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma
+apps/api/prisma/generated/
+
+# Docker / infra volumes (local dev)
+infra/volumes/
+
+# Backups
+infra/backups/*
+!infra/backups/.gitkeep
