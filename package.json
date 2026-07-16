@@ -16,7 +16,7 @@
     "dev:api": "pnpm --filter @schichtbuch/api dev",
     "dev:web": "pnpm --filter @schichtbuch/web dev",
     "prepare": "husky",
-    "postinstall": "pnpm --filter @schichtbuch/shared build"
+    "postinstall": "if [ -f packages/shared/tsconfig.json ]; then pnpm --filter @schichtbuch/shared build; fi"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
