@@ -24,12 +24,17 @@ export function AnweisungenPage() {
   const ungelesen = anweisungen.filter((a) => !a.gelesen);
   const gelesen = anweisungen.filter((a) => a.gelesen);
   const darfVerwalten = hasPermission("anweisungen:manage");
+  // Empfänger (Instandhalter/Schichtleiter) sehen Ungelesen/Gelesen; reine
+  // Ersteller (Meister ohne Leserecht) sehen eine flache Liste mit Lesestatus.
+  const istEmpfaenger = hasPermission("anweisungen:read");
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Hinweise der Meister/Schichtleiter für das Team – ungelesene bitte quittieren.
+          {istEmpfaenger
+            ? "Hinweise der Meister für das Team – ungelesene bitte quittieren."
+            : "Von Ihnen bereitgestellte Hinweise und deren Lesestatus."}
         </p>
         <RequirePermission permission="anweisungen:manage">
           <Button onClick={() => setFormOpen(true)}>
@@ -44,7 +49,27 @@ export function AnweisungenPage() {
         <p className="text-sm text-muted-foreground">Keine Arbeitsanweisungen vorhanden.</p>
       )}
 
-      {ungelesen.length > 0 && (
+      {!istEmpfaenger && darfVerwalten && anweisungen.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold text-muted-foreground">
+            Bereitgestellte Anweisungen ({anweisungen.length})
+          </h2>
+          <div className="space-y-2">
+            {anweisungen.map((a) => (
+              <AnweisungCard
+                key={a.id}
+                anweisung={a}
+                darfVerwalten={darfVerwalten}
+                istEmpfaenger={istEmpfaenger}
+                onClick={() => setDetail(a)}
+                formatDateTime={formatDateTime}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {istEmpfaenger && ungelesen.length > 0 && (
         <section className="space-y-2">
           <h2 className="flex items-center gap-2 text-sm font-semibold">
             <AlertCircle className="h-4 w-4 text-amber-500" />
@@ -56,6 +81,7 @@ export function AnweisungenPage() {
                 key={a.id}
                 anweisung={a}
                 darfVerwalten={darfVerwalten}
+                istEmpfaenger={istEmpfaenger}
                 onClick={() => setDetail(a)}
                 formatDateTime={formatDateTime}
               />
@@ -64,7 +90,7 @@ export function AnweisungenPage() {
         </section>
       )}
 
-      {gelesen.length > 0 && (
+      {istEmpfaenger && gelesen.length > 0 && (
         <section className="space-y-2">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
             <Check className="h-4 w-4" />
@@ -76,6 +102,7 @@ export function AnweisungenPage() {
                 key={a.id}
                 anweisung={a}
                 darfVerwalten={darfVerwalten}
+                istEmpfaenger={istEmpfaenger}
                 onClick={() => setDetail(a)}
                 formatDateTime={formatDateTime}
               />
@@ -93,11 +120,13 @@ export function AnweisungenPage() {
 function AnweisungCard({
   anweisung,
   darfVerwalten,
+  istEmpfaenger,
   onClick,
   formatDateTime,
 }: {
   anweisung: ArbeitsanweisungListItem;
   darfVerwalten: boolean;
+  istEmpfaenger: boolean;
   onClick: () => void;
   formatDateTime: (iso: string) => string;
 }) {
@@ -111,14 +140,15 @@ function AnweisungCard({
         <span className="font-medium">{anweisung.titel}</span>
         <div className="flex shrink-0 items-center gap-1.5">
           {anweisung.anhang && <Paperclip className="h-4 w-4 text-muted-foreground" />}
-          {anweisung.gelesen ? (
-            <Badge variant="outline" className="gap-1 text-green-600">
-              <Check className="h-3 w-3" />
-              Gelesen
-            </Badge>
-          ) : (
-            <Badge className="bg-amber-500 hover:bg-amber-500">Ungelesen</Badge>
-          )}
+          {istEmpfaenger &&
+            (anweisung.gelesen ? (
+              <Badge variant="outline" className="gap-1 text-green-600">
+                <Check className="h-3 w-3" />
+                Gelesen
+              </Badge>
+            ) : (
+              <Badge className="bg-amber-500 hover:bg-amber-500">Ungelesen</Badge>
+            ))}
         </div>
       </div>
       {anweisung.text && (

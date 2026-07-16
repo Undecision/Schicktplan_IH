@@ -2,8 +2,9 @@ import { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Rolle, ROLLEN, PASSWORD_MIN_LENGTH, PASSWORD_POLICY_HINT } from "@schichtbuch/shared";
+import { PASSWORD_MIN_LENGTH, PASSWORD_POLICY_HINT } from "@schichtbuch/shared";
 import type { GewerkRef, UserSummary } from "@schichtbuch/shared";
+import { useRoles } from "./roles-queries";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +29,7 @@ const formSchema = z.object({
   email: z.string().min(1, "E-Mail ist erforderlich").email("Ungültige E-Mail-Adresse"),
   name: z.string().min(1, "Name ist erforderlich"),
   password: z.union([passwordSchema, z.literal("")]).optional(),
-  rollen: z.array(z.nativeEnum(Rolle)).min(1, "Mindestens eine Rolle auswählen"),
+  rollen: z.array(z.string()).min(1, "Mindestens eine Rolle auswählen"),
   gewerkeIds: z.array(z.string()),
 });
 
@@ -43,6 +44,7 @@ interface UserFormDialogProps {
 export function UserFormDialog({ open, onOpenChange, user }: UserFormDialogProps) {
   const isEdit = !!user;
   const { data: gewerke = [] } = useGewerke();
+  const { data: roles = [] } = useRoles(open);
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
 
@@ -145,21 +147,21 @@ export function UserFormDialog({ open, onOpenChange, user }: UserFormDialogProps
               name="rollen"
               render={({ field }) => (
                 <div className="space-y-2">
-                  {ROLLEN.map((rolle) => (
-                    <label key={rolle} className="flex items-center gap-2 text-sm">
+                  {roles.map((rolle) => (
+                    <label key={rolle.id} className="flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
                         className="h-4 w-4"
-                        checked={field.value.includes(rolle)}
+                        checked={field.value.includes(rolle.name)}
                         onChange={(event) => {
                           field.onChange(
                             event.target.checked
-                              ? [...field.value, rolle]
-                              : field.value.filter((r) => r !== rolle),
+                              ? [...field.value, rolle.name]
+                              : field.value.filter((r) => r !== rolle.name),
                           );
                         }}
                       />
-                      {rolle}
+                      {rolle.name}
                     </label>
                   ))}
                 </div>

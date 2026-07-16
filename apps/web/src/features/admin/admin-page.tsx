@@ -1,5 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UsersPage } from "./users-page";
+import { RolesManager } from "./roles-manager";
 import { StammdatenManager } from "./stammdaten/stammdaten-manager";
 import { STAMMDATEN_RESOURCES } from "./stammdaten/config";
 
@@ -10,6 +11,7 @@ export function AdminPage() {
     <Tabs defaultValue="benutzer">
       <TabsList>
         <TabsTrigger value="benutzer">Benutzer</TabsTrigger>
+        <TabsTrigger value="rollen">Rollen</TabsTrigger>
         {STAMMDATEN_TABS.map((resource) => (
           <TabsTrigger key={resource.endpoint} value={resource.endpoint}>
             {resource.labelPlural}
@@ -19,6 +21,10 @@ export function AdminPage() {
 
       <TabsContent value="benutzer">
         <UsersPage />
+      </TabsContent>
+
+      <TabsContent value="rollen">
+        <RolesManager />
       </TabsContent>
 
       {STAMMDATEN_TABS.map((resource) => (

@@ -35,13 +35,22 @@ export function RequirePermission({
 
 export function RequirePermissionRoute({
   permission,
+  anyOf,
   children,
 }: {
-  permission: PermissionKey;
+  /** Einzelne erforderliche Permission. */
+  permission?: PermissionKey;
+  /** Alternativ: mindestens eine dieser Permissions genügt. */
+  anyOf?: PermissionKey[];
   children: ReactNode;
 }) {
   const { hasPermission } = useAuth();
-  if (!hasPermission(permission)) {
+  const erlaubt = anyOf
+    ? anyOf.some((p) => hasPermission(p))
+    : permission
+      ? hasPermission(permission)
+      : true;
+  if (!erlaubt) {
     return <Navigate to="/" replace />;
   }
   return <>{children}</>;

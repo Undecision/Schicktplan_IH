@@ -46,7 +46,7 @@ export const router = createBrowserRouter([
       {
         path: "anweisungen",
         element: (
-          <RequirePermissionRoute permission="anweisungen:read">
+          <RequirePermissionRoute anyOf={["anweisungen:read", "anweisungen:manage"]}>
             <AnweisungenPage />
           </RequirePermissionRoute>
         ),

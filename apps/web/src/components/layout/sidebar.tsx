@@ -21,6 +21,8 @@ interface NavItem {
   end?: boolean;
   /** Nur anzeigen, wenn der Nutzer diese Permission besitzt. */
   permission?: PermissionKey;
+  /** Alternativ: mindestens eine dieser Permissions genügt. */
+  anyPermissions?: PermissionKey[];
 }
 
 const navItems: NavItem[] = [
@@ -30,7 +32,7 @@ const navItems: NavItem[] = [
     to: "/anweisungen",
     label: "Anweisungen",
     icon: ClipboardCheck,
-    permission: "anweisungen:read",
+    anyPermissions: ["anweisungen:read", "anweisungen:manage"],
   },
   { to: "/uebergabe", label: "Übergabe", icon: ArrowLeftRight },
   { to: "/berichte", label: "Berichte", icon: BarChart3 },
@@ -39,9 +41,10 @@ const navItems: NavItem[] = [
 
 export function Sidebar() {
   const { hasPermission } = useAuth();
-  const visibleNavItems = navItems.filter(
-    (item) => !item.permission || hasPermission(item.permission),
-  );
+  const visibleNavItems = navItems.filter((item) => {
+    if (item.anyPermissions) return item.anyPermissions.some((p) => hasPermission(p));
+    return !item.permission || hasPermission(item.permission);
+  });
   const darfErfassen = hasPermission("eintraege:create");
 
   return (

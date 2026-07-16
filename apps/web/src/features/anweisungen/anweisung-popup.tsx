@@ -22,7 +22,7 @@ import { useQuittieren, useUngelesenAnweisungen } from "./queries";
 export function AnweisungPopup() {
   const { hasPermission } = useAuth();
   const darfLesen = hasPermission("anweisungen:read");
-  const { data: ungelesen = [] } = useUngelesenAnweisungen();
+  const { data: ungelesen = [] } = useUngelesenAnweisungen(darfLesen);
   const quittieren = useQuittieren();
   const navigate = useNavigate();
   const [geschlossen, setGeschlossen] = useState(false);

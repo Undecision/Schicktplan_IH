@@ -15,8 +15,12 @@ export function useAnweisungen() {
   return useQuery({ queryKey: ANWEISUNGEN_KEY, queryFn: fetchAnweisungen });
 }
 
-export function useUngelesenAnweisungen() {
-  return useQuery({ queryKey: [...ANWEISUNGEN_KEY, "ungelesen"], queryFn: fetchUngelesen });
+export function useUngelesenAnweisungen(enabled = true) {
+  return useQuery({
+    queryKey: [...ANWEISUNGEN_KEY, "ungelesen"],
+    queryFn: fetchUngelesen,
+    enabled,
+  });
 }
 
 export function useQuittungen(id: string | undefined) {

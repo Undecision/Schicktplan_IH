@@ -24,6 +24,7 @@ export function AnweisungDetailDialog({
   const { hasPermission } = useAuth();
   const quittieren = useQuittieren();
   const darfVerwalten = hasPermission("anweisungen:manage");
+  const istEmpfaenger = hasPermission("anweisungen:read");
 
   return (
     <Dialog open={!!anweisung} onOpenChange={onOpenChange}>
@@ -49,25 +50,28 @@ export function AnweisungDetailDialog({
 
               {darfVerwalten && <Lesestatus anweisungId={anweisung.id} />}
 
-              <div className="flex items-center justify-between gap-2">
-                {anweisung.gelesen ? (
-                  <span className="flex items-center gap-1 text-sm text-green-600">
-                    <Check className="h-4 w-4" />
-                    Gelesen{anweisung.gelesenAm ? ` am ${formatDateTime(anweisung.gelesenAm)}` : ""}
-                  </span>
-                ) : (
-                  <span className="text-sm text-muted-foreground">Noch nicht quittiert</span>
-                )}
-                {!anweisung.gelesen && (
-                  <Button
-                    onClick={() => quittieren.mutate(anweisung.id)}
-                    disabled={quittieren.isPending}
-                  >
-                    <Check className="h-4 w-4" />
-                    Als gelesen quittieren
-                  </Button>
-                )}
-              </div>
+              {istEmpfaenger && (
+                <div className="flex items-center justify-between gap-2">
+                  {anweisung.gelesen ? (
+                    <span className="flex items-center gap-1 text-sm text-green-600">
+                      <Check className="h-4 w-4" />
+                      Gelesen
+                      {anweisung.gelesenAm ? ` am ${formatDateTime(anweisung.gelesenAm)}` : ""}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Noch nicht quittiert</span>
+                  )}
+                  {!anweisung.gelesen && (
+                    <Button
+                      onClick={() => quittieren.mutate(anweisung.id)}
+                      disabled={quittieren.isPending}
+                    >
+                      <Check className="h-4 w-4" />
+                      Als gelesen quittieren
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </>
         )}
