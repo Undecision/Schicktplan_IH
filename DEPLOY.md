@@ -3,15 +3,70 @@
 Zielumgebung: Proxmox-LXC (~4 vCPU / 8 GB RAM), 10–40 gleichzeitige Nutzer,
 Docker Compose, Caddy als Reverse Proxy mit automatischem HTTPS.
 
-## 1. Voraussetzungen
+## 1. Proxmox-LXC anlegen (einmalig)
 
-- Docker Engine + Docker Compose Plugin im LXC-Container.
-- Für Produktivbetrieb: LXC mit "nesting" aktiviert (Docker-in-LXC) und
-  ausreichend Disk-Volume für `postgres-data` / `minio-data`.
+Dieses Repo stellt **Docker-Compose** bereit – das orchestriert Docker-Container
+(postgres, minio, api, web, caddy), **nicht** das Proxmox-LXC selbst. Das LXC ist
+der Host, in dem der Stack läuft, und wird einmalig auf dem Proxmox-Host angelegt.
+
+### 1a. Container in der Proxmox-Weboberfläche erstellen
+
+1. **Vorlage laden**: Datacenter → Storage (z.B. `local`) → CT Templates →
+   _Templates_ → `debian-12-standard` herunterladen.
+2. **Create CT** (oben rechts):
+   - **General**: Hostname z.B. `schichtbuch`, Passwort/SSH-Key setzen.
+     "Unprivileged container" angehakt lassen.
+   - **Template**: das geladene `debian-12-standard`-Image wählen.
+   - **Disks**: Root-Disk **≥ 40 GB** (Postgres + MinIO-Anhänge wachsen).
+   - **CPU**: **4 Cores**.
+   - **Memory**: **8192 MB** RAM (min. 4096), Swap 2048 MB.
+   - **Network**: statische IP oder DHCP; Bridge `vmbr0`.
+3. **Noch NICHT starten** – erst Nesting aktivieren (nächster Schritt).
+
+### 1b. Nesting aktivieren (Docker-in-LXC)
+
+Docker läuft in einem LXC nur mit aktiviertem `nesting`-Feature. Auf der
+Proxmox-Host-Shell (`<CTID>` = die ID des Containers, z.B. 100):
+
+```bash
+pct set <CTID> --features nesting=1
+pct start <CTID>
+pct enter <CTID>
+```
+
+Alternativ in der Weboberfläche: Container → Options → Features → _Nesting_
+anhaken (Container muss dazu gestoppt sein).
+
+### 1c. Docker im LXC installieren
+
+Innerhalb des Containers (`pct enter <CTID>` oder per SSH):
+
+```bash
+apt-get update && apt-get install -y ca-certificates curl git
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+  https://download.docker.com/linux/debian $(. /etc/os-release && echo $VERSION_CODENAME) stable" \
+  > /etc/apt/sources.list.d/docker.list
+apt-get update
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+docker run --rm hello-world   # Funktionstest
+```
+
+### 1d. Voraussetzungen-Checkliste
+
+- LXC mit **nesting=1**, ~4 vCPU / 8 GB RAM, ≥ 40 GB Disk.
+- Docker Engine + Compose-Plugin installiert (Schritt 1c).
+- Ports **80/443** des LXC erreichbar (für Caddy/HTTPS).
+- Ausreichend Disk für die Named Volumes `postgres-data` / `minio-data`.
 
 ## 2. Konfiguration
 
+Repo in das LXC klonen und Umgebungsvariablen setzen:
+
 ```bash
+git clone <REPO-URL> schichtbuch && cd schichtbuch
 cp .env.example .env
 # .env bearbeiten: alle "change-me"-Werte durch starke Secrets ersetzen.
 ```
