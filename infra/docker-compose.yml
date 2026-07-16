@@ -50,12 +50,17 @@ services:
       minio:
         condition: service_healthy
     healthcheck:
-      # 127.0.0.1 statt localhost erzwingt IPv4 (der Dienst lauscht nur auf IPv4).
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:${API_PORT}/${API_GLOBAL_PREFIX}/health"]
+      # node:22-slim enthält kein wget/curl – daher HTTP-Check über Node selbst
+      # (127.0.0.1 erzwingt IPv4). Exit 0 nur bei HTTP 200.
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('http').get('http://127.0.0.1:${API_PORT}/${API_GLOBAL_PREFIX}/health',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 15s
+      start_period: 20s
 
   web:
     build:
