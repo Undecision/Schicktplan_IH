@@ -25,9 +25,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RequirePermission } from "@/features/auth/protected-route";
 import { useFormOptions } from "@/features/eintraege/queries";
 import { useBerichte, useGeneriereBerichte } from "@/features/berichte/queries";
+import { AuswertungenPanel } from "@/features/reporting/auswertungen-panel";
 
 const ALL = "__all__";
 
@@ -46,6 +48,23 @@ export function StatusBerichtBadge({ status }: { status: SchichtberichtStatus })
 }
 
 export function BerichtePage() {
+  return (
+    <Tabs defaultValue="schichtberichte" className="space-y-4">
+      <TabsList>
+        <TabsTrigger value="schichtberichte">Schichtberichte</TabsTrigger>
+        <TabsTrigger value="auswertungen">Auswertungen &amp; Export</TabsTrigger>
+      </TabsList>
+      <TabsContent value="schichtberichte">
+        <SchichtberichteListe />
+      </TabsContent>
+      <TabsContent value="auswertungen">
+        <AuswertungenPanel />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+function SchichtberichteListe() {
   const navigate = useNavigate();
   const { data: options } = useFormOptions();
   const [filter, setFilter] = useState<BerichtFilter>({});

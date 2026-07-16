@@ -6,7 +6,7 @@ import { RequirePermissions } from "../auth/decorators/require-permissions.decor
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { Audited } from "../audit/decorators/audited.decorator";
 import { UebergabenService } from "./uebergaben.service";
-import { PdfService } from "./pdf.service";
+import { PdfService } from "../pdf/pdf.service";
 import { renderUebergabeHtml } from "./uebergabe-pdf.template";
 import { GeneriereUebergabeDto } from "./dto/generiere-uebergabe.dto";
 import { UpdateUebergabeDto } from "./dto/update-uebergabe.dto";

@@ -23,6 +23,8 @@ import { DashboardModule } from "./dashboard/dashboard.module";
 import { BerichteModule } from "./berichte/berichte.module";
 import { UebergabenModule } from "./uebergaben/uebergaben.module";
 import { NotificationsModule } from "./notifications/notifications.module";
+import { PdfModule } from "./pdf/pdf.module";
+import { ReportingModule } from "./reporting/reporting.module";
 import { BootstrapModule } from "./bootstrap/bootstrap.module";
 
 @Module({
@@ -59,9 +61,11 @@ import { BootstrapModule } from "./bootstrap/bootstrap.module";
     EintraegeModule,
     AnhaengeModule,
     NotificationsModule,
+    PdfModule,
     DashboardModule,
     BerichteModule,
     UebergabenModule,
+    ReportingModule,
     BootstrapModule,
     HealthModule,
   ],

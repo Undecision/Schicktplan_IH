@@ -11,3 +11,4 @@ export * from "./dashboard";
 export * from "./historie";
 export * from "./berichte";
 export * from "./uebergaben";
+export * from "./reporting";
