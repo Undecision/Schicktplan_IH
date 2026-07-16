@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import { AlertTriangle, ChevronDown, Info, Search, SlidersHorizontal, X } from "lucide-react";
 import {
   EINTRAG_STATUS,
+  EINTRAG_TYP_LABELS,
+  EintragTyp,
   PRIORITAETEN,
   PRIORITAET_LABELS,
   STATUS_LABELS,
@@ -11,6 +13,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Combobox } from "@/components/ui/combobox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -54,7 +62,13 @@ export function EintraegeListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: options } = useFormOptions();
   const [formOpen, setFormOpen] = useState(false);
+  const [formTyp, setFormTyp] = useState<EintragTyp>(EintragTyp.SCHICHTINFORMATION);
   const [showMore, setShowMore] = useState(false);
+
+  function neuerEintrag(typ: EintragTyp) {
+    setFormTyp(typ);
+    setFormOpen(true);
+  }
 
   // Filter direkt aus der URL ableiten → teilbare/lesbare Ansichten.
   const filter = useMemo<EintragFilter>(() => {
@@ -92,10 +106,10 @@ export function EintraegeListPage() {
     return () => clearTimeout(handle);
   }, [searchInput]);
 
-  // Sidebar-"Neuer Eintrag" navigiert mit ?erfassen=1.
+  // Sidebar-"Neuer Eintrag" navigiert mit ?erfassen=1 (Standard: Schichtinformation).
   useEffect(() => {
     if (searchParams.get("erfassen") === "1") {
-      setFormOpen(true);
+      neuerEintrag(EintragTyp.SCHICHTINFORMATION);
       setParam("erfassen", "");
     }
   }, [searchParams]);
@@ -118,10 +132,24 @@ export function EintraegeListPage() {
           />
         </div>
         <RequirePermission permission="eintraege:create">
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Neuer Eintrag
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button>
+                Neuer Eintrag
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => neuerEintrag(EintragTyp.SCHICHTINFORMATION)}>
+                <Info className="h-4 w-4" />
+                Schichtinformation
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => neuerEintrag(EintragTyp.STOERUNG)}>
+                <AlertTriangle className="h-4 w-4" />
+                Störung
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </RequirePermission>
       </div>
 
@@ -207,6 +235,7 @@ export function EintraegeListPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Zeitpunkt</TableHead>
+              <TableHead>Typ</TableHead>
               <TableHead>Priorität</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Gewerk</TableHead>
@@ -218,14 +247,14 @@ export function EintraegeListPage() {
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                <TableCell colSpan={8} className="text-center text-muted-foreground">
                   Lädt…
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && eintraege.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                <TableCell colSpan={8} className="text-center text-muted-foreground">
                   Keine Einträge gefunden.
                 </TableCell>
               </TableRow>
@@ -238,6 +267,9 @@ export function EintraegeListPage() {
               >
                 <TableCell className="whitespace-nowrap">
                   {formatDateTime(eintrag.zeitpunkt)}
+                </TableCell>
+                <TableCell>
+                  <TypBadge typ={eintrag.typ} />
                 </TableCell>
                 <TableCell>
                   <PrioritaetBadge prioritaet={eintrag.prioritaet} />
@@ -259,8 +291,24 @@ export function EintraegeListPage() {
         </Table>
       </div>
 
-      <EintragFormDialog open={formOpen} onOpenChange={setFormOpen} />
+      <EintragFormDialog open={formOpen} onOpenChange={setFormOpen} typ={formTyp} />
     </div>
+  );
+}
+
+/** Kleines Badge, das den Eintragstyp (Schichtinformation / Störung) kennzeichnet. */
+function TypBadge({ typ }: { typ: EintragTyp }) {
+  const istStoerung = typ === EintragTyp.STOERUNG;
+  return (
+    <span
+      className={
+        "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium " +
+        (istStoerung ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground")
+      }
+    >
+      {istStoerung ? <AlertTriangle className="h-3 w-3" /> : <Info className="h-3 w-3" />}
+      {EINTRAG_TYP_LABELS[typ]}
+    </span>
   );
 }
 

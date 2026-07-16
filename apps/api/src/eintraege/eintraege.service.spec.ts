@@ -1,5 +1,11 @@
 import { ForbiddenException, NotFoundException } from "@nestjs/common";
-import { EintragStatus, Prioritaet, Rolle, type AuthenticatedUser } from "@schichtbuch/shared";
+import {
+  EintragStatus,
+  EintragTyp,
+  Prioritaet,
+  Rolle,
+  type AuthenticatedUser,
+} from "@schichtbuch/shared";
 import { EintraegeService } from "./eintraege.service";
 
 function makeUser(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
@@ -37,9 +43,13 @@ function makeEntity(id: string, beschreibung = "x") {
     createdAt: new Date(),
     updatedAt: new Date(),
     zeitpunkt: new Date(),
+    typ: EintragTyp.SCHICHTINFORMATION,
     prioritaet: Prioritaet.NORMAL,
     status: EintragStatus.OFFEN,
     beschreibung,
+    stoerung: null,
+    ursache: null,
+    korrekturmassnahme: null,
     sapIhAuftrag: null,
     easyFlowTag: null,
     gewerk: { id: "g", name: "Mechanik" },
@@ -57,6 +67,7 @@ function makeEntity(id: string, beschreibung = "x") {
 }
 
 const CREATE_BASE = {
+  typ: EintragTyp.SCHICHTINFORMATION,
   zeitpunkt: "2026-07-16T08:00:00.000Z",
   schichtId: "s",
   gewerkId: "g",
@@ -86,6 +97,11 @@ describe("EintraegeService – Bearbeitungsdauer", () => {
       id: "e1",
       erstellerId: "user-1",
       status: EintragStatus.IN_BEARBEITUNG,
+      typ: EintragTyp.SCHICHTINFORMATION,
+      stoerung: null,
+      ursache: null,
+      korrekturmassnahme: null,
+      beschreibung: "x",
       bearbeitungBeginn: new Date("2026-07-16T08:00:00.000Z"),
       bearbeitungEnde: null,
       gewerk: { name: "Mechanik" },

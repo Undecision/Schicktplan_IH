@@ -4,7 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   EINTRAG_STATUS,
+  EINTRAG_TYP_LABELS,
   EintragStatus,
+  EintragTyp,
   EASYFLOW_TAG_REGEX,
   PRIORITAETEN,
   PRIORITAET_LABELS,
@@ -62,32 +64,69 @@ function eigenesGewerkId(gewerke: { id: string; name: string }[], sichtbar: stri
   return "";
 }
 
-const formSchema = z.object({
-  datum: z.string().min(1, "Datum ist erforderlich"),
-  uhrzeit: z.string().min(1, "Uhrzeit ist erforderlich"),
-  schichtId: z.string().min(1, "Schicht ist erforderlich"),
-  gewerkId: z.string().min(1, "Gewerk ist erforderlich"),
-  fachbereichId: z.string().min(1, "Fachbereich ist erforderlich"),
-  technischerPlatzId: z.string().min(1, "Technischer Platz ist erforderlich"),
-  prioritaet: z.nativeEnum(Prioritaet),
-  status: z.nativeEnum(EintragStatus),
-  beschreibung: z.string().min(1, "Beschreibung ist erforderlich"),
-  sapIhAuftrag: z
-    .string()
-    .optional()
-    .refine(
-      (v) => !v || SAP_AUFTRAG_REGEX.test(v),
-      "SAP-IH-Auftrag: 6–12 Ziffern (z.B. 700123456).",
-    ),
-  easyFlowTag: z
-    .string()
-    .optional()
-    .refine((v) => !v || EASYFLOW_TAG_REGEX.test(v), "EasyFlow-TAG-Format, z.B. PW4-M-1023."),
-  faelligkeitsdatum: z.string().optional(),
-  bearbeitungBeginn: z.string().optional(),
-  bearbeitungEnde: z.string().optional(),
-  schlagwortIds: z.array(z.string()),
-});
+const formSchema = z
+  .object({
+    typ: z.nativeEnum(EintragTyp),
+    datum: z.string().min(1, "Datum ist erforderlich"),
+    uhrzeit: z.string().min(1, "Uhrzeit ist erforderlich"),
+    schichtId: z.string().min(1, "Schicht ist erforderlich"),
+    gewerkId: z.string().min(1, "Gewerk ist erforderlich"),
+    fachbereichId: z.string().min(1, "Fachbereich ist erforderlich"),
+    technischerPlatzId: z.string().min(1, "Technischer Platz ist erforderlich"),
+    prioritaet: z.nativeEnum(Prioritaet),
+    status: z.nativeEnum(EintragStatus),
+    // Freitext bei Schichtinformation, strukturierte Felder bei Störung – die
+    // Pflicht je Typ wird unten per superRefine erzwungen.
+    beschreibung: z.string().optional(),
+    stoerung: z.string().optional(),
+    ursache: z.string().optional(),
+    korrekturmassnahme: z.string().optional(),
+    sapIhAuftrag: z
+      .string()
+      .optional()
+      .refine(
+        (v) => !v || SAP_AUFTRAG_REGEX.test(v),
+        "SAP-IH-Auftrag: 6–12 Ziffern (z.B. 700123456).",
+      ),
+    easyFlowTag: z
+      .string()
+      .optional()
+      .refine((v) => !v || EASYFLOW_TAG_REGEX.test(v), "EasyFlow-TAG-Format, z.B. PW4-M-1023."),
+    bearbeitungBeginn: z.string().optional(),
+    bearbeitungEnde: z.string().optional(),
+    schlagwortIds: z.array(z.string()),
+  })
+  .superRefine((val, ctx) => {
+    if (val.typ === EintragTyp.STOERUNG) {
+      if (!val.stoerung?.trim()) {
+        ctx.addIssue({
+          path: ["stoerung"],
+          code: z.ZodIssueCode.custom,
+          message: "Störung ist erforderlich",
+        });
+      }
+      if (!val.ursache?.trim()) {
+        ctx.addIssue({
+          path: ["ursache"],
+          code: z.ZodIssueCode.custom,
+          message: "Ursache ist erforderlich",
+        });
+      }
+      if (!val.korrekturmassnahme?.trim()) {
+        ctx.addIssue({
+          path: ["korrekturmassnahme"],
+          code: z.ZodIssueCode.custom,
+          message: "Korrekturmaßnahme ist erforderlich",
+        });
+      }
+    } else if (!val.beschreibung?.trim()) {
+      ctx.addIssue({
+        path: ["beschreibung"],
+        code: z.ZodIssueCode.custom,
+        message: "Beschreibung ist erforderlich",
+      });
+    }
+  });
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -95,15 +134,21 @@ interface EintragFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   eintrag?: SchichtbucheintragDetail;
+  /** Typ des neuen Eintrags (nur beim Anlegen; beim Bearbeiten kommt er aus dem Eintrag). */
+  typ?: EintragTyp;
 }
 
-function toDefaults(eintrag?: SchichtbucheintragDetail): FormValues {
+function toDefaults(
+  eintrag?: SchichtbucheintragDetail,
+  neuerTyp: EintragTyp = EintragTyp.SCHICHTINFORMATION,
+): FormValues {
   const pad = (n: number) => String(n).padStart(2, "0");
   if (!eintrag) {
     // Neuer Eintrag: Datum + Uhrzeit automatisch auf „jetzt" (Schicht/Gewerk
     // werden nach dem Laden der Optionen ergänzt).
     const now = new Date();
     return {
+      typ: neuerTyp,
       datum: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
       uhrzeit: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
       schichtId: "",
@@ -113,9 +158,11 @@ function toDefaults(eintrag?: SchichtbucheintragDetail): FormValues {
       prioritaet: Prioritaet.NORMAL,
       status: EintragStatus.OFFEN,
       beschreibung: "",
+      stoerung: "",
+      ursache: "",
+      korrekturmassnahme: "",
       sapIhAuftrag: "",
       easyFlowTag: "",
-      faelligkeitsdatum: "",
       bearbeitungBeginn: "",
       bearbeitungEnde: "",
       schlagwortIds: [],
@@ -123,6 +170,7 @@ function toDefaults(eintrag?: SchichtbucheintragDetail): FormValues {
   }
   const dt = new Date(eintrag.zeitpunkt);
   return {
+    typ: eintrag.typ,
     datum: `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`,
     uhrzeit: `${pad(dt.getHours())}:${pad(dt.getMinutes())}`,
     schichtId: eintrag.schicht.id,
@@ -131,10 +179,12 @@ function toDefaults(eintrag?: SchichtbucheintragDetail): FormValues {
     technischerPlatzId: eintrag.technischerPlatz.id,
     prioritaet: eintrag.prioritaet,
     status: eintrag.status,
-    beschreibung: eintrag.beschreibung,
+    beschreibung: eintrag.typ === EintragTyp.STOERUNG ? "" : eintrag.beschreibung,
+    stoerung: eintrag.stoerung ?? "",
+    ursache: eintrag.ursache ?? "",
+    korrekturmassnahme: eintrag.korrekturmassnahme ?? "",
     sapIhAuftrag: eintrag.sapIhAuftrag ?? "",
     easyFlowTag: eintrag.easyFlowTag ?? "",
-    faelligkeitsdatum: eintrag.faelligkeitsdatum ? eintrag.faelligkeitsdatum.slice(0, 10) : "",
     bearbeitungBeginn: toLocalInput(eintrag.bearbeitungBeginn),
     bearbeitungEnde: toLocalInput(eintrag.bearbeitungEnde),
     schlagwortIds: eintrag.schlagwoerter.map((s) => s.id),
@@ -149,8 +199,15 @@ function toLocalInput(iso: string | null): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export function EintragFormDialog({ open, onOpenChange, eintrag }: EintragFormDialogProps) {
+export function EintragFormDialog({
+  open,
+  onOpenChange,
+  eintrag,
+  typ = EintragTyp.SCHICHTINFORMATION,
+}: EintragFormDialogProps) {
   const isEdit = !!eintrag;
+  const effektiverTyp = eintrag?.typ ?? typ;
+  const istStoerung = effektiverTyp === EintragTyp.STOERUNG;
   const { data: options } = useFormOptions();
   const { user } = useAuth();
   const createMutation = useCreateEintrag();
@@ -165,11 +222,14 @@ export function EintragFormDialog({ open, onOpenChange, eintrag }: EintragFormDi
     setValue,
     getValues,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ resolver: zodResolver(formSchema), defaultValues: toDefaults() });
+  } = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: toDefaults(undefined, typ),
+  });
 
   useEffect(() => {
-    if (open) reset(toDefaults(eintrag));
-  }, [open, eintrag, reset]);
+    if (open) reset(toDefaults(eintrag, typ));
+  }, [open, eintrag, typ, reset]);
 
   // Beim Neuanlegen Schicht (nach Uhrzeit) und Gewerk (nach Nutzer) vorbelegen,
   // sobald die Optionen geladen sind – ohne bereits getroffene Auswahl zu überschreiben.
@@ -217,7 +277,9 @@ export function EintragFormDialog({ open, onOpenChange, eintrag }: EintragFormDi
 
   async function onSubmit(values: FormValues) {
     const zeitpunkt = new Date(`${values.datum}T${values.uhrzeit}:00`).toISOString();
+    const istStoer = values.typ === EintragTyp.STOERUNG;
     const payload = {
+      typ: values.typ,
       zeitpunkt,
       schichtId: values.schichtId,
       gewerkId: values.gewerkId,
@@ -225,12 +287,13 @@ export function EintragFormDialog({ open, onOpenChange, eintrag }: EintragFormDi
       technischerPlatzId: values.technischerPlatzId,
       prioritaet: values.prioritaet,
       status: values.status,
-      beschreibung: values.beschreibung,
+      // Nur die zum Typ passenden Textfelder senden.
+      beschreibung: istStoer ? undefined : values.beschreibung,
+      stoerung: istStoer ? values.stoerung : null,
+      ursache: istStoer ? values.ursache : null,
+      korrekturmassnahme: istStoer ? values.korrekturmassnahme : null,
       sapIhAuftrag: values.sapIhAuftrag || null,
       easyFlowTag: values.easyFlowTag || null,
-      faelligkeitsdatum: values.faelligkeitsdatum
-        ? new Date(`${values.faelligkeitsdatum}T00:00:00`).toISOString()
-        : null,
       bearbeitungBeginn: values.bearbeitungBeginn
         ? new Date(values.bearbeitungBeginn).toISOString()
         : null,
@@ -259,7 +322,11 @@ export function EintragFormDialog({ open, onOpenChange, eintrag }: EintragFormDi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Eintrag bearbeiten" : "Neuer Schichtbucheintrag"}</DialogTitle>
+          <DialogTitle>
+            {isEdit
+              ? `${EINTRAG_TYP_LABELS[effektiverTyp]} bearbeiten`
+              : `Neue ${EINTRAG_TYP_LABELS[effektiverTyp]}`}
+          </DialogTitle>
         </DialogHeader>
 
         {errors.root && (
@@ -326,9 +393,23 @@ export function EintragFormDialog({ open, onOpenChange, eintrag }: EintragFormDi
             />
           </div>
 
-          <Field label="Beschreibung" error={errors.beschreibung?.message}>
-            <Textarea {...register("beschreibung")} />
-          </Field>
+          {istStoerung ? (
+            <>
+              <Field label="Störung" error={errors.stoerung?.message}>
+                <Textarea {...register("stoerung")} />
+              </Field>
+              <Field label="Ursache" error={errors.ursache?.message}>
+                <Textarea {...register("ursache")} />
+              </Field>
+              <Field label="Korrekturmaßnahme" error={errors.korrekturmassnahme?.message}>
+                <Textarea {...register("korrekturmassnahme")} />
+              </Field>
+            </>
+          ) : (
+            <Field label="Beschreibung" error={errors.beschreibung?.message}>
+              <Textarea {...register("beschreibung")} />
+            </Field>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <Field label="SAP-IH-Auftrag (optional)" error={errors.sapIhAuftrag?.message}>
@@ -336,12 +417,6 @@ export function EintragFormDialog({ open, onOpenChange, eintrag }: EintragFormDi
             </Field>
             <Field label="EasyFlow-TAG (optional)" error={errors.easyFlowTag?.message}>
               <Input placeholder="PW4-M-1023" {...register("easyFlowTag")} />
-            </Field>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Fälligkeit (optional)" error={undefined}>
-              <Input type="date" {...register("faelligkeitsdatum")} />
             </Field>
           </div>
 

@@ -1,6 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import type {
   EintragKommentar,
+  EintragTyp,
   Prioritaet,
   Referenz,
   SchichtbucheintragDetail,
@@ -42,10 +43,14 @@ export function toListItem(eintrag: EintragListPayload): SchichtbucheintragListI
     id: eintrag.id,
     createdAt: eintrag.createdAt.toISOString(),
     updatedAt: eintrag.updatedAt.toISOString(),
+    typ: eintrag.typ as EintragTyp,
     zeitpunkt: eintrag.zeitpunkt.toISOString(),
     prioritaet: eintrag.prioritaet as Prioritaet,
     status: eintrag.status as EintragStatus,
     beschreibung: eintrag.beschreibung,
+    stoerung: eintrag.stoerung,
+    ursache: eintrag.ursache,
+    korrekturmassnahme: eintrag.korrekturmassnahme,
     gewerk: ref(eintrag.gewerk),
     fachbereich: ref(eintrag.fachbereich),
     technischerPlatz: {

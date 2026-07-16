@@ -1,7 +1,13 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { BadRequestException } from "@nestjs/common";
-import { EintragStatus, Prioritaet, Rolle, type AuthenticatedUser } from "@schichtbuch/shared";
+import {
+  EintragStatus,
+  EintragTyp,
+  Prioritaet,
+  Rolle,
+  type AuthenticatedUser,
+} from "@schichtbuch/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import {
@@ -166,11 +172,23 @@ export class EintraegeService {
   }
 
   async create(user: AuthenticatedUser, dto: CreateEintragDto) {
+    const stoerfelder = this.stoerfelder(dto.typ, {
+      stoerung: dto.stoerung,
+      ursache: dto.ursache,
+      korrekturmassnahme: dto.korrekturmassnahme,
+    });
     const data: Prisma.SchichtbucheintragCreateInput = {
+      typ: dto.typ,
       zeitpunkt: new Date(dto.zeitpunkt),
       prioritaet: dto.prioritaet,
       status: dto.status,
-      beschreibung: dto.beschreibung,
+      // Bei Störungen spiegelt „beschreibung" die Störung, damit Suche/Berichte/
+      // Übergabe unverändert weiterarbeiten; sonst die Freitext-Beschreibung.
+      beschreibung:
+        dto.typ === EintragTyp.STOERUNG ? (dto.stoerung ?? "") : (dto.beschreibung ?? ""),
+      stoerung: stoerfelder.stoerung,
+      ursache: stoerfelder.ursache,
+      korrekturmassnahme: stoerfelder.korrekturmassnahme,
       sapIhAuftrag: dto.sapIhAuftrag || null,
       easyFlowTag: dto.easyFlowTag || null,
       faelligkeitsdatum: dto.faelligkeitsdatum ? new Date(dto.faelligkeitsdatum) : null,
@@ -220,6 +238,11 @@ export class EintraegeService {
         id: true,
         erstellerId: true,
         status: true,
+        typ: true,
+        stoerung: true,
+        ursache: true,
+        korrekturmassnahme: true,
+        beschreibung: true,
         bearbeitungBeginn: true,
         bearbeitungEnde: true,
         gewerk: { select: { name: true } },
@@ -240,9 +263,24 @@ export class EintraegeService {
     if (dto.zeitpunkt !== undefined) data.zeitpunkt = new Date(dto.zeitpunkt);
     if (dto.prioritaet !== undefined) data.prioritaet = dto.prioritaet;
     if (dto.status !== undefined) data.status = dto.status;
-    if (dto.beschreibung !== undefined) data.beschreibung = dto.beschreibung;
     if (dto.schlagwortIds !== undefined) {
       data.schlagwoerter = { set: dto.schlagwortIds.map((sid) => ({ id: sid })) };
+    }
+
+    // Typ, Störfelder und die gespiegelte Beschreibung konsistent fortschreiben.
+    const effektiverTyp = (dto.typ ?? (existing.typ as EintragTyp)) as EintragTyp;
+    if (dto.typ !== undefined) data.typ = dto.typ;
+    if (effektiverTyp === EintragTyp.STOERUNG) {
+      const stoerung = dto.stoerung ?? existing.stoerung ?? "";
+      data.stoerung = stoerung;
+      data.ursache = dto.ursache ?? existing.ursache ?? "";
+      data.korrekturmassnahme = dto.korrekturmassnahme ?? existing.korrekturmassnahme ?? "";
+      data.beschreibung = stoerung;
+    } else {
+      data.stoerung = null;
+      data.ursache = null;
+      data.korrekturmassnahme = null;
+      if (dto.beschreibung !== undefined) data.beschreibung = dto.beschreibung;
     }
 
     const bearbeitung = this.berechneBearbeitung({
@@ -328,6 +366,24 @@ export class EintraegeService {
       },
     });
     return this.findOne(user, eintragId);
+  }
+
+  /**
+   * Liefert die Störfelder abhängig vom Typ: bei STOERUNG die übergebenen Werte,
+   * sonst null (Schichtinformationen tragen keine strukturierten Störfelder).
+   */
+  private stoerfelder(
+    typ: EintragTyp,
+    werte: { stoerung?: string; ursache?: string; korrekturmassnahme?: string },
+  ): { stoerung: string | null; ursache: string | null; korrekturmassnahme: string | null } {
+    if (typ !== EintragTyp.STOERUNG) {
+      return { stoerung: null, ursache: null, korrekturmassnahme: null };
+    }
+    return {
+      stoerung: werte.stoerung ?? "",
+      ursache: werte.ursache ?? "",
+      korrekturmassnahme: werte.korrekturmassnahme ?? "",
+    };
   }
 
   private isVisible(user: AuthenticatedUser, gewerkName: string): boolean {

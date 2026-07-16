@@ -227,13 +227,26 @@ enum EintragStatus {
 
 /// Schichtbucheintrag (P3.1). Freitext-Felder werden in Phase 5 mit einer
 /// generierten tsvector-Spalte + GIN-Index für die Volltextsuche ergänzt.
+enum EintragTyp {
+  SCHICHTINFORMATION
+  STOERUNG
+}
+
 model Schichtbucheintrag {
   id          String        @id @default(uuid()) @db.Uuid
+  /// Formulartyp: Schichtinformation (Freitext) oder Störung (strukturiert).
+  typ         EintragTyp    @default(SCHICHTINFORMATION)
   /// Zeitpunkt des Ereignisses (kombiniert Datum + Uhrzeit aus dem Lastenheft).
   zeitpunkt   DateTime
   prioritaet  Prioritaet    @default(NORMAL)
   status      EintragStatus @default(OFFEN)
+  /// Anzeigetext (bei Störung = Spiegel des Störungs-Felds, damit Suche/Berichte
+  /// unverändert funktionieren).
   beschreibung String
+  /// Nur bei typ=STOERUNG befüllt.
+  stoerung           String?
+  ursache            String?
+  korrekturmassnahme String?
 
   /// Genau ein SAP-IH-Auftrag pro Eintrag (v1: manuelles Referenzfeld mit Validierung).
   sapIhAuftrag     String?

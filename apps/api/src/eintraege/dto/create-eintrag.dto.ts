@@ -3,6 +3,7 @@ import {
   EASYFLOW_TAG_HINT,
   EASYFLOW_TAG_REGEX,
   EintragStatus,
+  EintragTyp,
   Prioritaet,
   SAP_AUFTRAG_HINT,
   SAP_AUFTRAG_REGEX,
@@ -20,6 +21,10 @@ import {
 } from "class-validator";
 
 export class CreateEintragDto {
+  @ApiProperty({ enum: EintragTyp })
+  @IsEnum(EintragTyp)
+  typ!: EintragTyp;
+
   @ApiProperty({ description: "Zeitpunkt (ISO-8601), kombiniert Datum + Uhrzeit." })
   @IsISO8601()
   zeitpunkt!: string;
@@ -48,10 +53,29 @@ export class CreateEintragDto {
   @IsEnum(EintragStatus)
   status!: EintragStatus;
 
-  @ApiProperty()
+  @ApiPropertyOptional({ description: "Pflicht bei typ=SCHICHTINFORMATION." })
+  @ValidateIf((o) => o.typ !== EintragTyp.STOERUNG)
   @IsString()
   @IsNotEmpty()
-  beschreibung!: string;
+  beschreibung?: string;
+
+  @ApiPropertyOptional({ description: "Pflicht bei typ=STOERUNG." })
+  @ValidateIf((o) => o.typ === EintragTyp.STOERUNG)
+  @IsString()
+  @IsNotEmpty()
+  stoerung?: string;
+
+  @ApiPropertyOptional({ description: "Pflicht bei typ=STOERUNG." })
+  @ValidateIf((o) => o.typ === EintragTyp.STOERUNG)
+  @IsString()
+  @IsNotEmpty()
+  ursache?: string;
+
+  @ApiPropertyOptional({ description: "Pflicht bei typ=STOERUNG." })
+  @ValidateIf((o) => o.typ === EintragTyp.STOERUNG)
+  @IsString()
+  @IsNotEmpty()
+  korrekturmassnahme?: string;
 
   @ApiPropertyOptional({ description: SAP_AUFTRAG_HINT })
   @IsOptional()

@@ -1,4 +1,4 @@
-import { EintragStatus, Prioritaet, SchichtberichtStatus } from "@schichtbuch/shared";
+import { EintragStatus, EintragTyp, Prioritaet, SchichtberichtStatus } from "@schichtbuch/shared";
 import type { SchichtbucheintragListItem } from "@schichtbuch/shared";
 import { toBerichtDetail, type BerichtPayload } from "./berichte.mapper";
 
@@ -32,9 +32,13 @@ function eintrag(
     createdAt: "2026-07-16T08:00:00.000Z",
     updatedAt: "2026-07-16T08:00:00.000Z",
     zeitpunkt: "2026-07-16T08:00:00.000Z",
+    typ: EintragTyp.SCHICHTINFORMATION,
     prioritaet,
     status,
     beschreibung: "x",
+    stoerung: null,
+    ursache: null,
+    korrekturmassnahme: null,
     gewerk: { id: "g1", name: "Mechanik" },
     fachbereich: { id: "f1", name: "Druck" },
     technischerPlatz: { id: "t1", name: "TP" },

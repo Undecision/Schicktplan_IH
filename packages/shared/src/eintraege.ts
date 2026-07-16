@@ -1,5 +1,20 @@
 import type { BaseEntity } from "./base";
 
+/**
+ * Zwei Eintragstypen mit unterschiedlichem Formular:
+ * - SCHICHTINFORMATION: allgemeine Info mit Freitext-Beschreibung.
+ * - STOERUNG: strukturiert mit Störung / Ursache / Korrekturmaßnahme.
+ */
+export enum EintragTyp {
+  SCHICHTINFORMATION = "SCHICHTINFORMATION",
+  STOERUNG = "STOERUNG",
+}
+
+export const EINTRAG_TYP_LABELS: Record<EintragTyp, string> = {
+  [EintragTyp.SCHICHTINFORMATION]: "Schichtinformation",
+  [EintragTyp.STOERUNG]: "Störung",
+};
+
 export enum Prioritaet {
   NIEDRIG = "NIEDRIG",
   NORMAL = "NORMAL",
@@ -64,10 +79,16 @@ export interface EintragKommentar extends BaseEntity {
 }
 
 export interface SchichtbucheintragListItem extends BaseEntity {
+  typ: EintragTyp;
   zeitpunkt: string;
   prioritaet: Prioritaet;
   status: EintragStatus;
+  /** Anzeigetext: Beschreibung (Schichtinformation) bzw. Störung (Störung). */
   beschreibung: string;
+  /** Nur bei typ=STOERUNG befüllt. */
+  stoerung: string | null;
+  ursache: string | null;
+  korrekturmassnahme: string | null;
   gewerk: Referenz;
   fachbereich: Referenz;
   technischerPlatz: Referenz;
@@ -101,6 +122,7 @@ export interface SchichtbucheintragDetail extends SchichtbucheintragListItem {
 }
 
 export interface CreateEintragRequest {
+  typ: EintragTyp;
   zeitpunkt: string;
   schichtId: string;
   gewerkId: string;
@@ -108,7 +130,12 @@ export interface CreateEintragRequest {
   technischerPlatzId: string;
   prioritaet: Prioritaet;
   status: EintragStatus;
-  beschreibung: string;
+  /** Pflicht bei typ=SCHICHTINFORMATION. */
+  beschreibung?: string;
+  /** Pflicht bei typ=STOERUNG. */
+  stoerung?: string | null;
+  ursache?: string | null;
+  korrekturmassnahme?: string | null;
   sapIhAuftrag?: string | null;
   easyFlowTag?: string | null;
   verantwortlicherId?: string | null;

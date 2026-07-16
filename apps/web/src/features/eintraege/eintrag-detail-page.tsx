@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Info, Pencil } from "lucide-react";
+import { EINTRAG_TYP_LABELS, EintragTyp } from "@schichtbuch/shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +56,8 @@ export function EintragDetailPage() {
     setKommentarText("");
   }
 
+  const istStoerung = eintrag.typ === EintragTyp.STOERUNG;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -73,7 +76,20 @@ export function EintragDetailPage() {
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <div>
-            <CardTitle>{eintrag.beschreibung}</CardTitle>
+            <div className="mb-1 flex items-center gap-2">
+              <span
+                className={
+                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium " +
+                  (istStoerung
+                    ? "bg-destructive/10 text-destructive"
+                    : "bg-muted text-muted-foreground")
+                }
+              >
+                {istStoerung ? <AlertTriangle className="h-3 w-3" /> : <Info className="h-3 w-3" />}
+                {EINTRAG_TYP_LABELS[eintrag.typ]}
+              </span>
+            </div>
+            <CardTitle>{istStoerung ? eintrag.stoerung : eintrag.beschreibung}</CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
               {formatDateTime(eintrag.zeitpunkt)} · {eintrag.schicht.name}
             </p>
@@ -83,35 +99,43 @@ export function EintragDetailPage() {
             <StatusBadge status={eintrag.status} />
           </div>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm md:grid-cols-3">
-          <Detail label="Gewerk" value={eintrag.gewerk.name} />
-          <Detail label="Fachbereich" value={eintrag.fachbereich.name} />
-          <Detail label="Technischer Platz" value={eintrag.technischerPlatz.name} />
-          <Detail label="Ersteller" value={eintrag.ersteller.name} />
-          <Detail
-            label="Fälligkeit"
-            value={eintrag.faelligkeitsdatum ? formatDateTime(eintrag.faelligkeitsdatum) : "—"}
-          />
-          <Detail label="SAP-IH-Auftrag" value={eintrag.sapIhAuftrag ?? "—"} />
-          <Detail label="EasyFlow-TAG" value={eintrag.easyFlowTag ?? "—"} />
-          <Detail
-            label="Bearbeitungsbeginn"
-            value={eintrag.bearbeitungBeginn ? formatDateTime(eintrag.bearbeitungBeginn) : "—"}
-          />
-          <Detail
-            label="Bearbeitungsende"
-            value={eintrag.bearbeitungEnde ? formatDateTime(eintrag.bearbeitungEnde) : "—"}
-          />
-          <Detail label="Bearbeitungsdauer" value={formatDauer(eintrag.bearbeitungsdauerMinuten)} />
-          <div>
-            <p className="text-muted-foreground">Schlagwörter</p>
-            <div className="mt-1 flex flex-wrap gap-1">
-              {eintrag.schlagwoerter.length === 0 && <span>—</span>}
-              {eintrag.schlagwoerter.map((sw) => (
-                <Badge key={sw.id} variant="outline">
-                  {sw.name}
-                </Badge>
-              ))}
+        <CardContent className="space-y-4 text-sm">
+          {istStoerung && (
+            <div className="grid gap-3 rounded-md border border-border bg-muted/30 p-3 md:grid-cols-3">
+              <LongDetail label="Störung" value={eintrag.stoerung} />
+              <LongDetail label="Ursache" value={eintrag.ursache} />
+              <LongDetail label="Korrekturmaßnahme" value={eintrag.korrekturmassnahme} />
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-3">
+            <Detail label="Gewerk" value={eintrag.gewerk.name} />
+            <Detail label="Fachbereich" value={eintrag.fachbereich.name} />
+            <Detail label="Technischer Platz" value={eintrag.technischerPlatz.name} />
+            <Detail label="Ersteller" value={eintrag.ersteller.name} />
+            <Detail label="SAP-IH-Auftrag" value={eintrag.sapIhAuftrag ?? "—"} />
+            <Detail label="EasyFlow-TAG" value={eintrag.easyFlowTag ?? "—"} />
+            <Detail
+              label="Bearbeitungsbeginn"
+              value={eintrag.bearbeitungBeginn ? formatDateTime(eintrag.bearbeitungBeginn) : "—"}
+            />
+            <Detail
+              label="Bearbeitungsende"
+              value={eintrag.bearbeitungEnde ? formatDateTime(eintrag.bearbeitungEnde) : "—"}
+            />
+            <Detail
+              label="Bearbeitungsdauer"
+              value={formatDauer(eintrag.bearbeitungsdauerMinuten)}
+            />
+            <div>
+              <p className="text-muted-foreground">Schlagwörter</p>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {eintrag.schlagwoerter.length === 0 && <span>—</span>}
+                {eintrag.schlagwoerter.map((sw) => (
+                  <Badge key={sw.id} variant="outline">
+                    {sw.name}
+                  </Badge>
+                ))}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -167,6 +191,16 @@ function Detail({ label, value }: { label: string; value: string }) {
     <div>
       <p className="text-muted-foreground">{label}</p>
       <p className="font-medium">{value}</p>
+    </div>
+  );
+}
+
+/** Detail-Feld für längere, mehrzeilige Texte (Störung/Ursache/Korrekturmaßnahme). */
+function LongDetail({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div>
+      <p className="text-muted-foreground">{label}</p>
+      <p className="mt-0.5 whitespace-pre-wrap font-medium">{value || "—"}</p>
     </div>
   );
 }
