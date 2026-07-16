@@ -54,6 +54,8 @@ model User {
   verantwortlicheEintraege Schichtbucheintrag[] @relation("EintragVerantwortlicher")
   kommentare              EintragKommentar[]
   hochgeladeneAnhaenge    Anhang[]
+  verantwortlicheBerichte Schichtbericht[]     @relation("BerichtVerantwortlicher")
+  freigegebeneBerichte    Schichtbericht[]     @relation("BerichtFreigeber")
 
   @@map("users")
 }
@@ -120,6 +122,7 @@ model Gewerk {
 
   users     User[]               @relation("UserGewerkeSichtbarkeit")
   eintraege Schichtbucheintrag[]
+  berichte  Schichtbericht[]
 
   @@map("gewerke")
 }
@@ -189,6 +192,7 @@ model SchichtDefinition {
   deletedAt DateTime?
 
   eintraege Schichtbucheintrag[]
+  berichte  Schichtbericht[]
 
   @@map("schicht_definitionen")
 }
@@ -299,6 +303,40 @@ model Anhang {
 
   @@index([eintragId])
   @@map("anhaenge")
+}
+
+enum SchichtberichtStatus {
+  ENTWURF
+  FREIGEGEBEN
+}
+
+/// Automatischer Schichtbericht je Schicht/Gewerk/Tag (P7.1). Die Kennzahlen
+/// (Anzahl Einträge, offene Punkte, abgeschlossene Arbeiten, besondere
+/// Ereignisse) werden beim Lesen aus den Einträgen abgeleitet; hier liegen die
+/// Metadaten und der Freigabe-Status.
+model Schichtbericht {
+  id                  String               @id @default(uuid()) @db.Uuid
+  datum               DateTime             @db.Date
+  schichtId           String               @db.Uuid
+  gewerkId            String               @db.Uuid
+  verantwortlicherId  String?              @db.Uuid
+  status              SchichtberichtStatus @default(ENTWURF)
+  /// Freitext für besondere Ereignisse/Hinweise der Schicht.
+  besondereEreignisse String?
+  freigegebenVonId    String?              @db.Uuid
+  freigegebenAm       DateTime?
+
+  schicht          SchichtDefinition @relation(fields: [schichtId], references: [id])
+  gewerk           Gewerk            @relation(fields: [gewerkId], references: [id])
+  verantwortlicher User?             @relation("BerichtVerantwortlicher", fields: [verantwortlicherId], references: [id])
+  freigegebenVon   User?             @relation("BerichtFreigeber", fields: [freigegebenVonId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([datum, schichtId, gewerkId])
+  @@index([datum])
+  @@map("schichtberichte")
 }
 
 enum AuditAction {

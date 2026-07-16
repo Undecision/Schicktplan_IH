@@ -20,6 +20,7 @@ import { StammdatenModule } from "./stammdaten/stammdaten.module";
 import { EintraegeModule } from "./eintraege/eintraege.module";
 import { AnhaengeModule } from "./anhaenge/anhaenge.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
+import { BerichteModule } from "./berichte/berichte.module";
 import { BootstrapModule } from "./bootstrap/bootstrap.module";
 
 @Module({
@@ -56,6 +57,7 @@ import { BootstrapModule } from "./bootstrap/bootstrap.module";
     EintraegeModule,
     AnhaengeModule,
     DashboardModule,
+    BerichteModule,
     BootstrapModule,
     HealthModule,
   ],

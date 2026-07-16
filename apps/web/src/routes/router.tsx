@@ -5,6 +5,7 @@ import { SchichtbuchPage } from "@/pages/schichtbuch-page";
 import { EintragDetailPage } from "@/features/eintraege/eintrag-detail-page";
 import { UebergabePage } from "@/pages/uebergabe-page";
 import { BerichtePage } from "@/pages/berichte-page";
+import { BerichtDetailPage } from "@/pages/bericht-detail-page";
 import { AdminPage } from "@/pages/admin-page";
 import { LoginPage } from "@/features/auth/login-page";
 import { RequireAuth, RequirePermissionRoute } from "@/features/auth/protected-route";
@@ -41,8 +42,21 @@ export const router = createBrowserRouter([
       },
       {
         path: "berichte",
-        element: <BerichtePage />,
+        element: (
+          <RequirePermissionRoute permission="berichte:read">
+            <BerichtePage />
+          </RequirePermissionRoute>
+        ),
         handle: { title: "Berichte", subtitle: "Schicht-, Tages- und Wochenberichte" },
+      },
+      {
+        path: "berichte/:id",
+        element: (
+          <RequirePermissionRoute permission="berichte:read">
+            <BerichtDetailPage />
+          </RequirePermissionRoute>
+        ),
+        handle: { title: "Schichtbericht", subtitle: "Detailansicht" },
       },
       {
         path: "admin",
