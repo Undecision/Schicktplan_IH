@@ -17,6 +17,7 @@ import { AuditInterceptor } from "./audit/audit.interceptor";
 import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
 import { StammdatenModule } from "./stammdaten/stammdaten.module";
+import { EintraegeModule } from "./eintraege/eintraege.module";
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { StammdatenModule } from "./stammdaten/stammdaten.module";
     AuthModule,
     UsersModule,
     StammdatenModule,
+    EintraegeModule,
     HealthModule,
   ],
   controllers: [AppController],

@@ -50,6 +50,10 @@ model User {
   /// Gewerk-Sichtbarkeit als zusätzliche Datenfilter-Dimension (keine Mandantentrennung).
   gewerkeSichtbarkeit Gewerk[]   @relation("UserGewerkeSichtbarkeit")
 
+  erstellteEintraege      Schichtbucheintrag[] @relation("EintragErsteller")
+  verantwortlicheEintraege Schichtbucheintrag[] @relation("EintragVerantwortlicher")
+  kommentare              EintragKommentar[]
+
   @@map("users")
 }
 
@@ -113,7 +117,8 @@ model Gewerk {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  users User[] @relation("UserGewerkeSichtbarkeit")
+  users     User[]               @relation("UserGewerkeSichtbarkeit")
+  eintraege Schichtbucheintrag[]
 
   @@map("gewerke")
 }
@@ -132,6 +137,8 @@ model Fachbereich {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  eintraege Schichtbucheintrag[]
+
   @@map("fachbereiche")
 }
 
@@ -148,6 +155,8 @@ model TechnischerPlatz {
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
 
+  eintraege Schichtbucheintrag[]
+
   @@map("technische_plaetze")
 }
 
@@ -160,6 +169,8 @@ model Schlagwort {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
+
+  eintraege Schichtbucheintrag[] @relation("EintragSchlagwoerter")
 
   @@map("schlagwoerter")
 }
@@ -176,7 +187,86 @@ model SchichtDefinition {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  eintraege Schichtbucheintrag[]
+
   @@map("schicht_definitionen")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 3 – Schichtbucheinträge
+// ---------------------------------------------------------------------------
+
+enum Prioritaet {
+  NIEDRIG
+  NORMAL
+  HOCH
+  KRITISCH
+}
+
+enum EintragStatus {
+  OFFEN
+  IN_BEARBEITUNG
+  ERLEDIGT
+  VERSCHOBEN
+}
+
+/// Schichtbucheintrag (P3.1). Freitext-Felder werden in Phase 5 mit einer
+/// generierten tsvector-Spalte + GIN-Index für die Volltextsuche ergänzt.
+model Schichtbucheintrag {
+  id          String        @id @default(uuid()) @db.Uuid
+  /// Zeitpunkt des Ereignisses (kombiniert Datum + Uhrzeit aus dem Lastenheft).
+  zeitpunkt   DateTime
+  prioritaet  Prioritaet    @default(NORMAL)
+  status      EintragStatus @default(OFFEN)
+  beschreibung String
+
+  /// Genau ein SAP-IH-Auftrag pro Eintrag (v1: manuelles Referenzfeld mit Validierung).
+  sapIhAuftrag     String?
+  easyFlowTag      String?
+  faelligkeitsdatum DateTime?
+
+  schichtId          String @db.Uuid
+  gewerkId           String @db.Uuid
+  fachbereichId      String @db.Uuid
+  technischerPlatzId String @db.Uuid
+  erstellerId        String @db.Uuid
+  verantwortlicherId String? @db.Uuid
+
+  schicht          SchichtDefinition @relation(fields: [schichtId], references: [id])
+  gewerk           Gewerk            @relation(fields: [gewerkId], references: [id])
+  fachbereich      Fachbereich       @relation(fields: [fachbereichId], references: [id])
+  technischerPlatz TechnischerPlatz  @relation(fields: [technischerPlatzId], references: [id])
+  ersteller        User              @relation("EintragErsteller", fields: [erstellerId], references: [id])
+  verantwortlicher User?             @relation("EintragVerantwortlicher", fields: [verantwortlicherId], references: [id])
+  schlagwoerter    Schlagwort[]      @relation("EintragSchlagwoerter")
+  kommentare       EintragKommentar[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([gewerkId])
+  @@index([status])
+  @@index([prioritaet])
+  @@index([zeitpunkt])
+  @@map("schichtbucheintraege")
+}
+
+/// Kommentar zu einem Eintrag (P3.1) – von Instandhaltern.
+model EintragKommentar {
+  id       String @id @default(uuid()) @db.Uuid
+  eintragId String @db.Uuid
+  autorId  String @db.Uuid
+  text     String
+
+  eintrag Schichtbucheintrag @relation(fields: [eintragId], references: [id], onDelete: Cascade)
+  autor   User               @relation(fields: [autorId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([eintragId])
+  @@map("eintrag_kommentare")
 }
 
 enum AuditAction {

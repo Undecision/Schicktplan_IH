@@ -41,6 +41,14 @@ Konventionen für neue Modelle: siehe Kommentar-Header in `prisma/schema.prisma`
   (`admin:stammdaten:manage`); Deaktivieren = `PATCH { aktiv: false }`:
   `/api/gewerke`, `/api/fachbereiche`, `/api/technische-plaetze`,
   `/api/schlagwoerter`, `/api/schicht-definitionen`
+- `GET /api/users/auswahl` – schlanke Benutzer-Auswahlliste (id + name) für
+  Zuweisungs-Picker, für alle Authentifizierten
+- Schichtbucheinträge (Phase 3): `GET /api/eintraege` (Liste, Filter
+  status/prioritaet/gewerkId/fachbereichId/schichtId, `eintraege:read`),
+  `GET /api/eintraege/:id`, `POST` (`eintraege:create`), `PATCH /:id`
+  (`eintraege:update`, nur Ersteller oder Meister/Schichtleiter+),
+  `POST /:id/kommentare` (`eintraege:comment`). Gewerk-Sichtbarkeit wird als
+  Datenfilter erzwungen (leere Sichtbarkeit = alle Gewerke)
 
 Alle Endpunkte außer `/health`, `/` und `/auth/login|refresh|logout` verlangen
 einen gültigen `Authorization: Bearer <accessToken>`-Header (siehe

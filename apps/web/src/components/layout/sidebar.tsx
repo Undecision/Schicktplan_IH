@@ -70,7 +70,7 @@ export function Sidebar() {
 
       <div className="px-3 pb-4">
         <NavLink
-          to="/schichtbuch"
+          to="/schichtbuch?erfassen=1"
           className="flex h-11 items-center justify-center gap-2 rounded-md bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <Plus className="h-4 w-4" />

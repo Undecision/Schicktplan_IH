@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router-dom";
 import { AppShell } from "@/components/layout/app-shell";
 import { DashboardPage } from "@/pages/dashboard-page";
 import { SchichtbuchPage } from "@/pages/schichtbuch-page";
+import { EintragDetailPage } from "@/features/eintraege/eintrag-detail-page";
 import { UebergabePage } from "@/pages/uebergabe-page";
 import { BerichtePage } from "@/pages/berichte-page";
 import { AdminPage } from "@/pages/admin-page";
@@ -27,6 +28,11 @@ export const router = createBrowserRouter([
         path: "schichtbuch",
         element: <SchichtbuchPage />,
         handle: { title: "Schichtbuch", subtitle: "Einträge der Instandhaltung" },
+      },
+      {
+        path: "schichtbuch/:id",
+        element: <EintragDetailPage />,
+        handle: { title: "Schichtbucheintrag", subtitle: "Detailansicht" },
       },
       {
         path: "uebergabe",

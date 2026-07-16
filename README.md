@@ -96,3 +96,7 @@ Aktueller Stand:
 - **Phase 2 (Stammdaten)** – Gewerke, Fachbereiche, Technische Plätze,
   Schlagwörter, Schicht-Definitionen inkl. CRUD-API und Admin-Verwaltung
   (Anlegen/Bearbeiten/Deaktivieren, Duplikatprüfung)
+- **Phase 3 (Schichtbucheinträge)** – Datenmodell, CRUD-API mit Pflichtfeld-/
+  SAP-/TAG-Validierung, Kommentare, Gewerk-Sichtbarkeitsfilter und
+  Bearbeitungsregel (Ersteller/Meister); UI mit farbcodierter Liste, Filter,
+  Detailansicht und Erfassungs-/Bearbeitungsformular
