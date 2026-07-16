@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import type { AuthenticatedUser } from "@schichtbuch/shared";
@@ -6,6 +11,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { AuditLogService } from "../audit/audit-log.service";
 import type { AppConfig } from "../config/configuration";
 import { USER_WITH_ACCESS_INCLUDE, toAuthenticatedUser } from "../common/mappers/user.mapper";
+import { PasswordService } from "./password.service";
 import { LocalAuthProvider } from "./providers/local-auth.provider";
 import type { JwtAccessPayload, JwtRefreshPayload } from "./jwt-payload.interface";
 
@@ -24,6 +30,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService<AppConfig, true>,
     private readonly localAuthProvider: LocalAuthProvider,
+    private readonly passwordService: PasswordService,
     private readonly auditLog: AuditLogService,
   ) {}
 
@@ -126,6 +133,65 @@ export class AuthService {
       include: USER_WITH_ACCESS_INCLUDE,
     });
     return toAuthenticatedUser(user);
+  }
+
+  /** Eigene Stammdaten (Name, E-Mail) ändern. E-Mail muss eindeutig bleiben. */
+  async updateProfile(
+    userId: string,
+    input: { name: string; email: string },
+  ): Promise<AuthenticatedUser> {
+    const email = input.email.trim().toLowerCase();
+    const kollision = await this.prisma.user.findFirst({
+      where: { email, id: { not: userId }, deletedAt: null },
+      select: { id: true },
+    });
+    if (kollision) {
+      throw new ConflictException("Diese E-Mail-Adresse wird bereits verwendet.");
+    }
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { name: input.name.trim(), email },
+      include: USER_WITH_ACCESS_INCLUDE,
+    });
+    await this.auditLog.log({
+      actorId: userId,
+      actorName: user.name,
+      action: "UPDATE",
+      entity: "User",
+      entityId: userId,
+      after: { name: user.name, email: user.email, self: true },
+    });
+    return toAuthenticatedUser(user);
+  }
+
+  /** Eigenes Passwort ändern; das aktuelle Passwort muss stimmen. */
+  async changePassword(
+    userId: string,
+    input: { currentPassword: string; newPassword: string },
+  ): Promise<void> {
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    if (!user.passwordHash) {
+      throw new BadRequestException(
+        "Für dieses Konto ist kein lokales Passwort gesetzt (SSO-Anmeldung).",
+      );
+    }
+    const gueltig = await this.passwordService.verify(user.passwordHash, input.currentPassword);
+    if (!gueltig) {
+      throw new BadRequestException("Das aktuelle Passwort ist nicht korrekt.");
+    }
+    const passwordHash = await this.passwordService.hash(input.newPassword);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash, failedLoginAttempts: 0, lockedUntil: null },
+    });
+    await this.auditLog.log({
+      actorId: userId,
+      actorName: user.name,
+      action: "UPDATE",
+      entity: "User",
+      entityId: userId,
+      after: { passwordChanged: true, self: true },
+    });
   }
 
   private signAccessToken(user: AuthenticatedUser): string {

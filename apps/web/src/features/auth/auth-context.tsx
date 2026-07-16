@@ -10,6 +10,8 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   hasPermission: (permission: PermissionKey) => boolean;
+  /** Aktuellen Nutzer im Context aktualisieren (z.B. nach Profiländerung). */
+  setCurrentUser: (user: AuthenticatedUser) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -80,9 +82,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user],
   );
 
+  const setCurrentUser = useCallback((next: AuthenticatedUser) => setUser(next), []);
+
   const value = useMemo(
-    () => ({ user, isLoading, login, logout, hasPermission }),
-    [user, isLoading, login, logout, hasPermission],
+    () => ({ user, isLoading, login, logout, hasPermission, setCurrentUser }),
+    [user, isLoading, login, logout, hasPermission, setCurrentUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -46,6 +46,55 @@
     --sidebar-accent-foreground: 0 0% 100%;
 
     --radius: 0.5rem;
+
+    color-scheme: light;
+  }
+
+  /* Dunkles Theme: umschaltbar per .dark-Klasse auf <html> (siehe ThemeProvider).
+     Bewusst hoher Kontrast und leicht entsättigte Flächen, damit es auch auf
+     Werkshallen-Tablets angenehm und ermüdungsarm bleibt. */
+  .dark {
+    --background: 222 47% 9%;
+    --foreground: 210 40% 96%;
+
+    --card: 222 41% 13%;
+    --card-foreground: 210 40% 96%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 217 33% 20%;
+    --secondary-foreground: 210 40% 96%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 33% 24%;
+    --accent-foreground: 210 40% 96%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --warning: 32 95% 55%;
+    --warning-foreground: 222 47% 11%;
+
+    --success: 142 60% 45%;
+    --success-foreground: 222 47% 11%;
+
+    --border: 217 33% 24%;
+    --input: 217 33% 24%;
+    --ring: 217 91% 60%;
+
+    --popover: 222 41% 13%;
+    --popover-foreground: 210 40% 96%;
+
+    /* Sidebar im Dunkelmodus noch etwas tiefer als der Inhalt für klare Abgrenzung. */
+    --sidebar: 222 47% 6%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-accent: 217 33% 22%;
+    --sidebar-accent-foreground: 0 0% 100%;
+
+    color-scheme: dark;
   }
 
   * {

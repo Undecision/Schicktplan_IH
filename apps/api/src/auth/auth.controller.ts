@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Patch,
   Post,
   Req,
   Res,
@@ -18,6 +19,8 @@ import type { AppConfig } from "../config/configuration";
 import { parseDurationToMs } from "../common/utils/duration";
 import { AuthService } from "./auth.service";
 import { LoginDto } from "./dto/login.dto";
+import { UpdateProfileDto } from "./dto/update-profile.dto";
+import { ChangePasswordDto } from "./dto/change-password.dto";
 import { Public } from "./decorators/public.decorator";
 import { CurrentUser } from "./decorators/current-user.decorator";
 
@@ -62,6 +65,17 @@ export class AuthController {
   @Get("me")
   me(@CurrentUser() user: AuthenticatedUser) {
     return this.authService.me(user.id);
+  }
+
+  @Patch("me")
+  updateProfile(@CurrentUser() user: AuthenticatedUser, @Body() dto: UpdateProfileDto) {
+    return this.authService.updateProfile(user.id, dto);
+  }
+
+  @Post("change-password")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  changePassword(@CurrentUser() user: AuthenticatedUser, @Body() dto: ChangePasswordDto) {
+    return this.authService.changePassword(user.id, dto);
   }
 
   private setRefreshCookie(response: Response, refreshToken: string) {

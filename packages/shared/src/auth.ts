@@ -33,3 +33,15 @@ export interface LoginResponse {
   accessToken: string;
   user: AuthenticatedUser;
 }
+
+/** Selbstverwaltung: eigene Stammdaten ändern (eingeloggter Nutzer). */
+export interface UpdateProfileRequest {
+  name: string;
+  email: string;
+}
+
+/** Selbstverwaltung: eigenes Passwort ändern (aktuelles Passwort erforderlich). */
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}

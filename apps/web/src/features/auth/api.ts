@@ -1,4 +1,10 @@
-import type { AuthenticatedUser, LoginRequest, LoginResponse } from "@schichtbuch/shared";
+import type {
+  AuthenticatedUser,
+  ChangePasswordRequest,
+  LoginRequest,
+  LoginResponse,
+  UpdateProfileRequest,
+} from "@schichtbuch/shared";
 import { apiClient } from "@/lib/api-client";
 
 export async function login(payload: LoginRequest): Promise<LoginResponse> {
@@ -18,4 +24,13 @@ export async function fetchMe(): Promise<AuthenticatedUser> {
 export async function refreshAccessToken(): Promise<{ accessToken: string }> {
   const { data } = await apiClient.post<{ accessToken: string }>("/auth/refresh");
   return data;
+}
+
+export async function updateProfile(payload: UpdateProfileRequest): Promise<AuthenticatedUser> {
+  const { data } = await apiClient.patch<AuthenticatedUser>("/auth/me", payload);
+  return data;
+}
+
+export async function changePassword(payload: ChangePasswordRequest): Promise<void> {
+  await apiClient.post("/auth/change-password", payload);
 }

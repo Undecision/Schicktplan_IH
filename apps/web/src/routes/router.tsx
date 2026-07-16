@@ -10,6 +10,7 @@ import { BerichtePage } from "@/pages/berichte-page";
 import { BerichtDetailPage } from "@/pages/bericht-detail-page";
 import { AdminPage } from "@/pages/admin-page";
 import { LoginPage } from "@/features/auth/login-page";
+import { ProfilePage } from "@/features/auth/profile-page";
 import { RequireAuth, RequirePermissionRoute } from "@/features/auth/protected-route";
 
 export const router = createBrowserRouter([
@@ -36,6 +37,11 @@ export const router = createBrowserRouter([
         path: "schichtbuch/:id",
         element: <EintragDetailPage />,
         handle: { title: "Schichtbucheintrag", subtitle: "Detailansicht" },
+      },
+      {
+        path: "profil",
+        element: <ProfilePage />,
+        handle: { title: "Mein Konto", subtitle: "Eigene Daten und Passwort verwalten" },
       },
       {
         path: "anweisungen",
