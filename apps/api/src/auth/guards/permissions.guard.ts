@@ -2,7 +2,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from "@
 import { Reflector } from "@nestjs/core";
 import type { Request } from "express";
 import type { AuthenticatedUser, PermissionKey } from "@schichtbuch/shared";
-import { PERMISSIONS_KEY } from "../decorators/require-permissions.decorator";
+import { PERMISSIONS_ANY_KEY, PERMISSIONS_KEY } from "../decorators/require-permissions.decorator";
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -17,15 +17,24 @@ export class PermissionsGuard implements CanActivate {
       PERMISSIONS_KEY,
       [context.getHandler(), context.getClass()],
     );
-    if (!required || required.length === 0) {
+    const requiredAny = this.reflector.getAllAndOverride<PermissionKey[] | undefined>(
+      PERMISSIONS_ANY_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+    if ((!required || required.length === 0) && (!requiredAny || requiredAny.length === 0)) {
       return true;
     }
 
     const request = context.switchToHttp().getRequest<Request & { user?: AuthenticatedUser }>();
     const userPermissions = request.user?.permissions ?? [];
-    const hasAll = required.every((permission) => userPermissions.includes(permission));
 
-    if (!hasAll) {
+    const hasAll = (required ?? []).every((permission) => userPermissions.includes(permission));
+    const hasAny =
+      !requiredAny || requiredAny.length === 0
+        ? true
+        : requiredAny.some((permission) => userPermissions.includes(permission));
+
+    if (!hasAll || !hasAny) {
       throw new ForbiddenException("Keine Berechtigung für diese Operation.");
     }
     return true;

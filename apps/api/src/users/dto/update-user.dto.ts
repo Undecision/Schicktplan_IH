@@ -1,6 +1,5 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { Rolle } from "@schichtbuch/shared";
-import { IsArray, IsEnum, IsIn, IsNotEmpty, IsOptional, IsUUID } from "class-validator";
+import { IsArray, IsIn, IsNotEmpty, IsOptional, IsString, IsUUID } from "class-validator";
 
 export class UpdateUserDto {
   @ApiPropertyOptional()
@@ -8,11 +7,11 @@ export class UpdateUserDto {
   @IsNotEmpty()
   name?: string;
 
-  @ApiPropertyOptional({ enum: Rolle, isArray: true })
+  @ApiPropertyOptional({ type: [String], description: "Rollennamen (müssen existieren)." })
   @IsOptional()
   @IsArray()
-  @IsEnum(Rolle, { each: true })
-  rollen?: Rolle[];
+  @IsString({ each: true })
+  rollen?: string[];
 
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()

@@ -5,7 +5,7 @@
  *   - SeedService (automatischer Seed beim Container-Start, SEED_ON_STARTUP)
  */
 import type { PrismaClient } from "@prisma/client";
-import { PERMISSIONS, Rolle, ROLLEN } from "@schichtbuch/shared";
+import { PERMISSIONS, PERMISSION_LABELS, Rolle, ROLLEN } from "@schichtbuch/shared";
 import type { PermissionKey } from "@schichtbuch/shared";
 
 /** Prisma-Client oder Nest-PrismaService – beide erfüllen dieses Interface. */
@@ -30,32 +30,38 @@ export interface BootstrapAdminConfig {
   name?: string;
 }
 
-const PERMISSION_DESCRIPTIONS: Record<PermissionKey, string> = {
-  "eintraege:create": "Schichtbucheinträge anlegen",
-  "eintraege:read": "Schichtbucheinträge lesen",
-  "eintraege:update": "Schichtbucheinträge bearbeiten",
-  "eintraege:comment": "Schichtbucheinträge kommentieren",
-  "eintraege:attach": "Dateianhänge hochladen/löschen",
-  "anweisungen:read": "Arbeitsanweisungen lesen und quittieren",
-  "anweisungen:manage": "Arbeitsanweisungen erstellen und Lesestatus einsehen",
-  "uebergaben:manage": "Schichtübergaben erstellen/bearbeiten",
-  "berichte:read": "Berichte lesen",
-  "berichte:freigeben": "Schichtberichte freigeben",
-  "admin:benutzer:manage": "Benutzerverwaltung (Anlegen/Bearbeiten/Deaktivieren, Rollen)",
-  "admin:stammdaten:manage": "Stammdaten verwalten (Gewerke, Fachbereiche, …)",
-  "audit:read": "Audit-Log / Änderungsverlauf einsehen",
-};
+const PERMISSION_DESCRIPTIONS: Record<PermissionKey, string> = PERMISSION_LABELS;
 
+/**
+ * Standard-Berechtigungen der Systemrollen (nur Startwerte). Meister und
+ * Schichtleiter sind getrennt: Meister erstellen Anweisungen (anweisungen:manage,
+ * ohne :read), Schichtleiter lesen/quittieren sie (anweisungen:read) – wie die
+ * Instandhalter, jeweils nach Gewerk. „eintraege:update:fremde" erlaubt das
+ * Bearbeiten fremder Einträge (Administrator, Meister, Schichtleiter).
+ */
 const ROLE_PERMISSIONS: Record<Rolle, readonly PermissionKey[]> = {
   [Rolle.ADMINISTRATOR]: PERMISSIONS,
-  [Rolle.MEISTER_SCHICHTLEITER]: [
+  [Rolle.MEISTER]: [
     "eintraege:create",
     "eintraege:read",
     "eintraege:update",
+    "eintraege:update:fremde",
+    "eintraege:comment",
+    "eintraege:attach",
+    "anweisungen:manage",
+    "uebergaben:manage",
+    "berichte:read",
+    "berichte:freigeben",
+    "audit:read",
+  ],
+  [Rolle.SCHICHTLEITER]: [
+    "eintraege:create",
+    "eintraege:read",
+    "eintraege:update",
+    "eintraege:update:fremde",
     "eintraege:comment",
     "eintraege:attach",
     "anweisungen:read",
-    "anweisungen:manage",
     "uebergaben:manage",
     "berichte:read",
     "berichte:freigeben",
@@ -104,21 +110,66 @@ async function seedRollen(prisma: SeedPrisma) {
     });
   }
 
+  await migriereAltRolleMeisterSchichtleiter(prisma);
+
   for (const rolle of ROLLEN) {
     const role = await prisma.role.upsert({
       where: { name: rolle },
       create: { name: rolle },
       update: {},
     });
-    const permissions = await prisma.permission.findMany({
-      where: { key: { in: [...ROLE_PERMISSIONS[rolle]] } },
-    });
-    await prisma.rolePermission.deleteMany({ where: { roleId: role.id } });
-    await prisma.rolePermission.createMany({
-      data: permissions.map((permission) => ({ roleId: role.id, permissionId: permission.id })),
-      skipDuplicates: true,
-    });
+    const vorhandene = await prisma.rolePermission.count({ where: { roleId: role.id } });
+
+    // Standard-Berechtigungen NUR beim ersten Anlegen einer Rolle setzen, damit
+    // spätere Anpassungen über die Rollenverwaltung erhalten bleiben. Ausnahme:
+    // der Administrator wird immer mit allen Berechtigungen synchronisiert.
+    if (rolle === Rolle.ADMINISTRATOR) {
+      await setzeRollenPermissions(prisma, role.id, PERMISSIONS);
+    } else if (vorhandene === 0) {
+      await setzeRollenPermissions(prisma, role.id, ROLE_PERMISSIONS[rolle]);
+    }
   }
+}
+
+/** Setzt die Berechtigungen einer Rolle exakt auf die übergebene Liste. */
+async function setzeRollenPermissions(
+  prisma: SeedPrisma,
+  roleId: string,
+  keys: readonly PermissionKey[],
+) {
+  const permissions = await prisma.permission.findMany({ where: { key: { in: [...keys] } } });
+  await prisma.rolePermission.deleteMany({ where: { roleId } });
+  await prisma.rolePermission.createMany({
+    data: permissions.map((permission) => ({ roleId, permissionId: permission.id })),
+    skipDuplicates: true,
+  });
+}
+
+/**
+ * Einmalige Migration der früheren kombinierten Rolle „Meister/Schichtleiter":
+ * Bestehende Zuordnungen werden auf „Schichtleiter" umgehängt (behalten Lese-/
+ * Bearbeitungs-/Freigaberechte); die Anweisungs-Erstellung ist danach der neuen
+ * Rolle „Meister" vorbehalten und wird bei Bedarf gezielt zugewiesen. Idempotent:
+ * nach dem ersten Lauf existiert die alte Rolle nicht mehr.
+ */
+async function migriereAltRolleMeisterSchichtleiter(prisma: SeedPrisma) {
+  const alt = await prisma.role.findUnique({ where: { name: "Meister/Schichtleiter" } });
+  if (!alt) return;
+  const schichtleiter = await prisma.role.upsert({
+    where: { name: Rolle.SCHICHTLEITER },
+    create: { name: Rolle.SCHICHTLEITER },
+    update: {},
+  });
+  const zuordnungen = await prisma.userRole.findMany({ where: { roleId: alt.id } });
+  for (const zuordnung of zuordnungen) {
+    // Auf Schichtleiter umhängen (Duplikate überspringen).
+    await prisma.userRole
+      .create({ data: { userId: zuordnung.userId, roleId: schichtleiter.id } })
+      .catch(() => undefined);
+  }
+  await prisma.userRole.deleteMany({ where: { roleId: alt.id } });
+  await prisma.rolePermission.deleteMany({ where: { roleId: alt.id } });
+  await prisma.role.delete({ where: { id: alt.id } });
 }
 
 async function seedStammdaten(prisma: SeedPrisma) {

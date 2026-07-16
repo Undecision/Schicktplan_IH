@@ -16,7 +16,10 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiConsumes, ApiTags } from "@nestjs/swagger";
 import type { Response } from "express";
 import { ANWEISUNG_ANHANG_MAX_GROESSE_BYTES, type AuthenticatedUser } from "@schichtbuch/shared";
-import { RequirePermissions } from "../auth/decorators/require-permissions.decorator";
+import {
+  RequireAnyPermission,
+  RequirePermissions,
+} from "../auth/decorators/require-permissions.decorator";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import { Audited } from "../audit/decorators/audited.decorator";
 import type { UploadedFileLike } from "../anhaenge/anhaenge.service";
@@ -28,7 +31,8 @@ import { CreateArbeitsanweisungDto } from "./dto/create-arbeitsanweisung.dto";
 export class ArbeitsanweisungenController {
   constructor(private readonly service: ArbeitsanweisungenService) {}
 
-  @RequirePermissions("anweisungen:read")
+  // Ansehen ist für Empfänger (read) UND Ersteller/Meister (manage) möglich.
+  @RequireAnyPermission("anweisungen:read", "anweisungen:manage")
   @Get()
   list(@CurrentUser() user: AuthenticatedUser) {
     return this.service.listForUser(user);
@@ -56,7 +60,7 @@ export class ArbeitsanweisungenController {
     return this.service.create(user, body, file);
   }
 
-  @RequirePermissions("anweisungen:read")
+  @RequireAnyPermission("anweisungen:read", "anweisungen:manage")
   @Get(":id")
   findOne(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
     return this.service.findOne(user, id);
@@ -75,7 +79,7 @@ export class ArbeitsanweisungenController {
     return this.service.quittungen(user, id);
   }
 
-  @RequirePermissions("anweisungen:read")
+  @RequireAnyPermission("anweisungen:read", "anweisungen:manage")
   @Get(":id/anhang")
   async anhang(
     @CurrentUser() user: AuthenticatedUser,

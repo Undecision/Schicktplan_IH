@@ -282,7 +282,7 @@ describe("EintraegeService – Bearbeitungsregel", () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it("Meister/Schichtleiter darf fremden Eintrag bearbeiten", async () => {
+  it("Nutzer mit Permission eintraege:update:fremde darf fremden Eintrag bearbeiten", async () => {
     const prisma = makePrisma();
     prisma.schichtbucheintrag.findFirst.mockResolvedValue({
       id: "e1",
@@ -292,7 +292,11 @@ describe("EintraegeService – Bearbeitungsregel", () => {
     prisma.schichtbucheintrag.update.mockResolvedValue(detailReturn);
     const service = new EintraegeService(prisma as never, makeNotifications() as never);
     await expect(
-      service.update(makeUser({ id: "user-1", rollen: [Rolle.MEISTER_SCHICHTLEITER] }), "e1", {}),
+      service.update(
+        makeUser({ id: "user-1", permissions: ["eintraege:update:fremde"] }),
+        "e1",
+        {},
+      ),
     ).resolves.toBeDefined();
   });
 });

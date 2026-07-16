@@ -1,13 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { BadRequestException } from "@nestjs/common";
-import {
-  EintragStatus,
-  EintragTyp,
-  Prioritaet,
-  Rolle,
-  type AuthenticatedUser,
-} from "@schichtbuch/shared";
+import { EintragStatus, EintragTyp, Prioritaet, type AuthenticatedUser } from "@schichtbuch/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import {
@@ -21,13 +15,6 @@ import { UpdateEintragDto } from "./dto/update-eintrag.dto";
 import { ListEintraegeQueryDto } from "./dto/list-eintraege.query.dto";
 import { CreateKommentarDto } from "./dto/create-kommentar.dto";
 import { toHistorieEintrag } from "./eintrag-historie.mapper";
-
-/**
- * Rollen mit uneingeschränktem Bearbeitungsrecht (dürfen fremde Einträge
- * bearbeiten). Andere Rollen mit `eintraege:update` dürfen nur eigene Einträge
- * ändern (Lastenheft P3.2: "Meister/Schichtleiter+ bzw. Ersteller nach Regel").
- */
-const BROAD_EDIT_ROLES: readonly Rolle[] = [Rolle.ADMINISTRATOR, Rolle.MEISTER_SCHICHTLEITER];
 
 @Injectable()
 export class EintraegeService {
@@ -252,10 +239,12 @@ export class EintraegeService {
       throw new NotFoundException("Eintrag nicht gefunden.");
     }
 
-    const mayEditAll = user.rollen.some((rolle) => BROAD_EDIT_ROLES.includes(rolle));
+    // „Fremde Einträge bearbeiten" ist als Permission modelliert (über die
+    // Rollenverwaltung zuweisbar); ohne sie darf nur der Ersteller bearbeiten.
+    const mayEditAll = user.permissions.includes("eintraege:update:fremde");
     if (!mayEditAll && existing.erstellerId !== user.id) {
       throw new ForbiddenException(
-        "Nur der Ersteller oder Meister/Schichtleiter dürfen bearbeiten.",
+        "Nur der Ersteller oder berechtigte Rollen dürfen diesen Eintrag bearbeiten.",
       );
     }
 

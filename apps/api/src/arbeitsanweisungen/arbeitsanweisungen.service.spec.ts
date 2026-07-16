@@ -78,7 +78,7 @@ describe("ArbeitsanweisungenService", () => {
     prisma.user.count.mockResolvedValue(5);
     const service = new ArbeitsanweisungenService(prisma as never, makeStorage() as never);
     const result = await service.create(
-      makeUser({ rollen: [Rolle.MEISTER_SCHICHTLEITER] }),
+      makeUser({ rollen: [Rolle.MEISTER] }),
       { titel: "Hinweis", text: "Bitte beachten", gewerkId: "g1" },
       undefined,
     );
@@ -128,10 +128,7 @@ describe("ArbeitsanweisungenService", () => {
       { userId: "u1", gelesenAm: new Date() },
     ]);
     const service = new ArbeitsanweisungenService(prisma as never, makeStorage() as never);
-    const result = await service.quittungen(
-      makeUser({ rollen: [Rolle.MEISTER_SCHICHTLEITER] }),
-      "a1",
-    );
+    const result = await service.quittungen(makeUser({ rollen: [Rolle.MEISTER] }), "a1");
     expect(result.anzahlEmpfaenger).toBe(2);
     expect(result.anzahlGelesen).toBe(1);
     expect(result.empfaenger.find((e) => e.user.id === "u1")?.gelesen).toBe(true);

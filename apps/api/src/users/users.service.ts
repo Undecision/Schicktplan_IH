@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import type { UserSummary } from "@schichtbuch/shared";
 import { PrismaService } from "../prisma/prisma.service";
@@ -39,7 +39,7 @@ export class UsersService {
     }
 
     const passwordHash = await this.passwordService.hash(dto.password);
-    const roles = await this.prisma.role.findMany({ where: { name: { in: dto.rollen } } });
+    const roles = await this.resolveRollen(dto.rollen);
 
     const user = await this.prisma.user.create({
       data: {
@@ -60,7 +60,7 @@ export class UsersService {
     if (dto.status !== undefined) data.status = dto.status;
 
     if (dto.rollen !== undefined) {
-      const roles = await this.prisma.role.findMany({ where: { name: { in: dto.rollen } } });
+      const roles = await this.resolveRollen(dto.rollen);
       data.roles = {
         deleteMany: {},
         create: roles.map((role) => ({ roleId: role.id })),
@@ -77,6 +77,17 @@ export class UsersService {
       include: USER_WITH_ACCESS_INCLUDE,
     });
     return toUserSummary(user);
+  }
+
+  /** Löst Rollennamen zu Rollen auf und wirft, falls eine Rolle nicht existiert. */
+  private async resolveRollen(namen: string[]) {
+    const roles = await this.prisma.role.findMany({ where: { name: { in: namen } } });
+    if (roles.length !== new Set(namen).size) {
+      const gefunden = new Set(roles.map((r) => r.name));
+      const fehlend = namen.filter((n) => !gefunden.has(n));
+      throw new BadRequestException(`Unbekannte Rolle(n): ${fehlend.join(", ")}`);
+    }
+    return roles;
   }
 
   async deactivate(id: string): Promise<UserSummary> {

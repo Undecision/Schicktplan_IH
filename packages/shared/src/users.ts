@@ -1,5 +1,4 @@
 import type { BaseEntity } from "./base";
-import type { Rolle } from "./auth";
 
 export type UserStatus = "AKTIV" | "DEAKTIVIERT";
 
@@ -12,7 +11,8 @@ export interface UserSummary extends BaseEntity {
   email: string;
   name: string;
   status: UserStatus;
-  rollen: Rolle[];
+  /** Rollennamen (Systemrollen oder frei angelegte Rollen). */
+  rollen: string[];
   gewerke: GewerkRef[];
 }
 
@@ -20,13 +20,13 @@ export interface CreateUserRequest {
   email: string;
   name: string;
   password: string;
-  rollen: Rolle[];
+  rollen: string[];
   gewerkeIds: string[];
 }
 
 export interface UpdateUserRequest {
   name?: string;
-  rollen?: Rolle[];
+  rollen?: string[];
   gewerkeIds?: string[];
   status?: UserStatus;
 }

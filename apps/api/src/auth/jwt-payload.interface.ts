@@ -1,10 +1,10 @@
-import type { PermissionKey, Rolle } from "@schichtbuch/shared";
+import type { PermissionKey } from "@schichtbuch/shared";
 
 export interface JwtAccessPayload {
   sub: string;
   email: string;
   name: string;
-  rollen: Rolle[];
+  rollen: string[];
   permissions: PermissionKey[];
   gewerkeSichtbarkeit: string[];
 }

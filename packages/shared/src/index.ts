@@ -2,6 +2,7 @@ export * from "./base";
 export * from "./auth";
 export * from "./health";
 export * from "./permissions";
+export * from "./rollen";
 export * from "./users";
 export * from "./audit";
 export * from "./stammdaten";

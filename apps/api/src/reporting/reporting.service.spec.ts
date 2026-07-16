@@ -12,7 +12,7 @@ function makeUser(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser
     id: "u1",
     email: "u@e.de",
     name: "U",
-    rollen: [Rolle.MEISTER_SCHICHTLEITER],
+    rollen: [Rolle.MEISTER],
     permissions: [],
     gewerkeSichtbarkeit: [],
     ...overrides,

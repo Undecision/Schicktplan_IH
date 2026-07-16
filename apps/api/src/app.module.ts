@@ -16,6 +16,7 @@ import { AuditModule } from "./audit/audit.module";
 import { AuditInterceptor } from "./audit/audit.interceptor";
 import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
+import { RolesModule } from "./roles/roles.module";
 import { StammdatenModule } from "./stammdaten/stammdaten.module";
 import { EintraegeModule } from "./eintraege/eintraege.module";
 import { AnhaengeModule } from "./anhaenge/anhaenge.module";
@@ -59,6 +60,7 @@ import { BootstrapModule } from "./bootstrap/bootstrap.module";
     AuditModule,
     AuthModule,
     UsersModule,
+    RolesModule,
     StammdatenModule,
     EintraegeModule,
     AnhaengeModule,

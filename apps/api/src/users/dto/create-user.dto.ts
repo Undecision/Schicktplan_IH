@@ -1,6 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { Rolle } from "@schichtbuch/shared";
-import { ArrayNotEmpty, IsArray, IsEmail, IsEnum, IsNotEmpty, IsUUID } from "class-validator";
+import { ArrayNotEmpty, IsArray, IsEmail, IsNotEmpty, IsString, IsUUID } from "class-validator";
 import { IsStrongPassword } from "../../common/validators/is-strong-password.validator";
 
 export class CreateUserDto {
@@ -18,11 +17,11 @@ export class CreateUserDto {
   @IsStrongPassword()
   password!: string;
 
-  @ApiProperty({ enum: Rolle, isArray: true })
+  @ApiProperty({ type: [String], description: "Rollennamen (müssen existieren)." })
   @IsArray()
   @ArrayNotEmpty()
-  @IsEnum(Rolle, { each: true })
-  rollen!: Rolle[];
+  @IsString({ each: true })
+  rollen!: string[];
 
   @ApiProperty({ type: [String], description: "Gewerk-IDs (Sichtbarkeitsdimension)" })
   @IsArray()
