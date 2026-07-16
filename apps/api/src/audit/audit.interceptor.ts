@@ -32,7 +32,9 @@ export class AuditInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       tap((result: unknown) => {
-        const rawParamId = request.params?.id;
+        // Bevorzugt die spezifischste Ressourcen-ID der Route; fällt sonst auf
+        // die ID der Antwort zurück (z.B. bei POST/Create ohne Pfad-ID).
+        const rawParamId = request.params?.anhangId ?? request.params?.id;
         const paramId = typeof rawParamId === "string" ? rawParamId : undefined;
         const entityId = paramId ?? (result as { id?: string } | undefined)?.id ?? null;
 

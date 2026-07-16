@@ -6,3 +6,4 @@ export * from "./users";
 export * from "./audit";
 export * from "./stammdaten";
 export * from "./eintraege";
+export * from "./anhaenge";

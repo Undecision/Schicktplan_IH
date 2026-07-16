@@ -48,4 +48,31 @@ export class StorageService implements OnModuleInit {
   async bucketExists(): Promise<boolean> {
     return this.client.bucketExists(this.bucket);
   }
+
+  /** Objekt aus einem Buffer ablegen (Upload). */
+  async putObject(key: string, buffer: Buffer, size: number, contentType: string): Promise<void> {
+    await this.client.putObject(this.bucket, key, buffer, size, {
+      "Content-Type": contentType,
+    });
+  }
+
+  /** Objekt als Lese-Stream abrufen (Download über die API). */
+  async getObjectStream(key: string): Promise<NodeJS.ReadableStream> {
+    return this.client.getObject(this.bucket, key);
+  }
+
+  /** Objekt entfernen (beim Löschen eines Anhangs). */
+  async removeObject(key: string): Promise<void> {
+    await this.client.removeObject(this.bucket, key);
+  }
+
+  /**
+   * Zeitlich begrenzte, signierte Download-URL erzeugen (Bauplan P4.1).
+   * Nutzbar, sobald MinIO extern erreichbar ist; im Standard-Deployment
+   * (MinIO nur im internen Compose-Netz) läuft der Download stattdessen als
+   * RBAC-geschützter Stream über die API.
+   */
+  async presignedDownloadUrl(key: string, expirySeconds = 300): Promise<string> {
+    return this.client.presignedGetObject(this.bucket, key, expirySeconds);
+  }
 }

@@ -35,6 +35,7 @@ const PERMISSION_DESCRIPTIONS: Record<PermissionKey, string> = {
   "eintraege:read": "Schichtbucheinträge lesen",
   "eintraege:update": "Schichtbucheinträge bearbeiten",
   "eintraege:comment": "Schichtbucheinträge kommentieren",
+  "eintraege:attach": "Dateianhänge hochladen/löschen",
   "uebergaben:manage": "Schichtübergaben erstellen/bearbeiten",
   "berichte:read": "Berichte lesen",
   "berichte:freigeben": "Schichtberichte freigeben",
@@ -50,6 +51,7 @@ const ROLE_PERMISSIONS: Record<Rolle, readonly PermissionKey[]> = {
     "eintraege:read",
     "eintraege:update",
     "eintraege:comment",
+    "eintraege:attach",
     "uebergaben:manage",
     "berichte:read",
     "berichte:freigeben",
@@ -60,6 +62,7 @@ const ROLE_PERMISSIONS: Record<Rolle, readonly PermissionKey[]> = {
     "eintraege:read",
     "eintraege:update",
     "eintraege:comment",
+    "eintraege:attach",
   ],
   [Rolle.LESEBERECHTIGTE]: ["eintraege:read", "berichte:read"],
 };

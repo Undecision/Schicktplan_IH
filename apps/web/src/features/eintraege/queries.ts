@@ -13,6 +13,7 @@ import {
   fetchFormOptions,
   updateEintrag,
 } from "./api";
+import { deleteAnhang, fetchAnhaenge, uploadAnhang } from "./anhaenge-api";
 
 const EINTRAEGE_KEY = ["eintraege"];
 
@@ -49,6 +50,33 @@ export function useUpdateEintrag() {
     mutationFn: ({ id, payload }: { id: string; payload: UpdateEintragRequest }) =>
       updateEintrag(id, payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: EINTRAEGE_KEY }),
+  });
+}
+
+const anhaengeKey = (eintragId: string) => [...EINTRAEGE_KEY, "detail", eintragId, "anhaenge"];
+
+export function useAnhaenge(eintragId: string | undefined) {
+  return useQuery({
+    queryKey: anhaengeKey(eintragId ?? ""),
+    queryFn: () => fetchAnhaenge(eintragId as string),
+    enabled: !!eintragId,
+  });
+}
+
+export function useUploadAnhang(eintragId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ file, onProgress }: { file: File; onProgress?: (percent: number) => void }) =>
+      uploadAnhang(eintragId, file, onProgress),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: anhaengeKey(eintragId) }),
+  });
+}
+
+export function useDeleteAnhang(eintragId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (anhangId: string) => deleteAnhang(eintragId, anhangId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: anhaengeKey(eintragId) }),
   });
 }
 

@@ -9,6 +9,7 @@ import { RequirePermission } from "@/features/auth/protected-route";
 import { useAddKommentar, useEintrag } from "./queries";
 import { PrioritaetBadge, StatusBadge } from "./badges";
 import { EintragFormDialog } from "./eintrag-form-dialog";
+import { EintragAnhaenge } from "./eintrag-anhaenge";
 
 function formatDateTime(iso: string) {
   const d = new Date(iso);
@@ -98,6 +99,8 @@ export function EintragDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      <EintragAnhaenge eintragId={eintrag.id} />
 
       <Card>
         <CardHeader>

@@ -7,6 +7,7 @@ export const PERMISSIONS = [
   "eintraege:read",
   "eintraege:update",
   "eintraege:comment",
+  "eintraege:attach",
   "uebergaben:manage",
   "berichte:read",
   "berichte:freigeben",

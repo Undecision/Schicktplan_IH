@@ -18,6 +18,7 @@ import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
 import { StammdatenModule } from "./stammdaten/stammdaten.module";
 import { EintraegeModule } from "./eintraege/eintraege.module";
+import { AnhaengeModule } from "./anhaenge/anhaenge.module";
 import { BootstrapModule } from "./bootstrap/bootstrap.module";
 
 @Module({
@@ -52,6 +53,7 @@ import { BootstrapModule } from "./bootstrap/bootstrap.module";
     UsersModule,
     StammdatenModule,
     EintraegeModule,
+    AnhaengeModule,
     BootstrapModule,
     HealthModule,
   ],
