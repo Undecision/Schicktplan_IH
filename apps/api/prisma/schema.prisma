@@ -56,6 +56,8 @@ model User {
   hochgeladeneAnhaenge    Anhang[]
   verantwortlicheBerichte Schichtbericht[]     @relation("BerichtVerantwortlicher")
   freigegebeneBerichte    Schichtbericht[]     @relation("BerichtFreigeber")
+  uebergebeneUebergaben   Schichtuebergabe[]   @relation("UebergabeUebergeber")
+  uebernommeneUebergaben  Schichtuebergabe[]   @relation("UebergabeUebernehmer")
 
   @@map("users")
 }
@@ -123,6 +125,7 @@ model Gewerk {
   users     User[]               @relation("UserGewerkeSichtbarkeit")
   eintraege Schichtbucheintrag[]
   berichte  Schichtbericht[]
+  uebergaben Schichtuebergabe[]
 
   @@map("gewerke")
 }
@@ -193,6 +196,7 @@ model SchichtDefinition {
 
   eintraege Schichtbucheintrag[]
   berichte  Schichtbericht[]
+  uebergaben Schichtuebergabe[]
 
   @@map("schicht_definitionen")
 }
@@ -337,6 +341,43 @@ model Schichtbericht {
   @@unique([datum, schichtId, gewerkId])
   @@index([datum])
   @@map("schichtberichte")
+}
+
+enum UebergabeStatus {
+  ENTWURF
+  UEBERGEBEN
+}
+
+/// Digitale Schichtübergabe je Schicht/Gewerk/Tag (P8.1). Die aus offenen Daten
+/// übernommenen Listen (offene Störungen, laufende Arbeiten) werden beim Lesen
+/// aus den Einträgen abgeleitet; die Freitextfelder und der Übergabe-Status
+/// liegen hier.
+model Schichtuebergabe {
+  id                   String          @id @default(uuid()) @db.Uuid
+  datum                DateTime        @db.Date
+  schichtId            String          @db.Uuid
+  gewerkId             String          @db.Uuid
+  status               UebergabeStatus @default(ENTWURF)
+  besondereHinweise    String?
+  sicherheitshinweise  String?
+  freischaltungen      String?
+  arbeitsgenehmigungen String?
+  wichtigeTermine      String?
+  uebergebenVonId      String?         @db.Uuid
+  uebernommenVonId     String?         @db.Uuid
+  uebergebenAm         DateTime?
+
+  schicht        SchichtDefinition @relation(fields: [schichtId], references: [id])
+  gewerk         Gewerk            @relation(fields: [gewerkId], references: [id])
+  uebergebenVon  User?             @relation("UebergabeUebergeber", fields: [uebergebenVonId], references: [id])
+  uebernommenVon User?             @relation("UebergabeUebernehmer", fields: [uebernommenVonId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([datum, schichtId, gewerkId])
+  @@index([datum])
+  @@map("schichtuebergaben")
 }
 
 enum AuditAction {

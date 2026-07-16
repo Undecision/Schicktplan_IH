@@ -10,3 +10,4 @@ export * from "./anhaenge";
 export * from "./dashboard";
 export * from "./historie";
 export * from "./berichte";
+export * from "./uebergaben";

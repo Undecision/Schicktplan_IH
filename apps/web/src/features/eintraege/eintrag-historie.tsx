@@ -1,5 +1,5 @@
 import { History } from "lucide-react";
-import type { AuditAction, HistorieEintrag } from "@schichtbuch/shared";
+import type { AuditAction } from "@schichtbuch/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useHistorie } from "./queries";

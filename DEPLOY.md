@@ -214,3 +214,19 @@ Die API läuft auf `node:22-slim` (Debian/glibc), damit die nativen Abhängigkei
 Internet-Zugriff auf die npm-Registry und Docker Hub. Der erste `--build` dauert
 je nach Verbindung einige Minuten (Kompilierung von argon2, Prisma-Generate,
 Vite-Build).
+
+Für die **PDF-Erzeugung** der Schichtübergaben (Phase 8.2) installiert das
+Runtime-Image zusätzlich `chromium`; `PDF_CHROMIUM_PATH` ist im Image bereits auf
+`/usr/bin/chromium` gesetzt (kein separater Playwright-Browser-Download).
+
+## 9. Benachrichtigungen (Phase 8.5)
+
+E-Mail (SMTP) und Microsoft Teams (eingehender Webhook) sind **optional**. Ohne
+Konfiguration erfolgt kein Versand (No-Op) – der Stack läuft unverändert.
+
+- E-Mail aktivieren: `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASSWORD`/`SMTP_FROM`
+  setzen. Empfänger sind aktive Nutzer mit einer der Rollen aus `NOTIFY_ROLES`.
+- Teams aktivieren: `TEAMS_WEBHOOK_ENABLED=true` und `TEAMS_WEBHOOK_URL` setzen.
+
+Ausgelöst wird eine Benachrichtigung aktuell bei **neuen kritischen Einträgen**
+(asynchron, mit Retry).

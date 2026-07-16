@@ -26,6 +26,12 @@ RUN pnpm --filter @schichtbuch/api build
 
 FROM base AS runtime
 ENV NODE_ENV=production
+# Chromium für die serverseitige PDF-Erzeugung (P8.2, playwright-core nutzt das
+# System-Binary via PDF_CHROMIUM_PATH – kein separater Browser-Download nötig).
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends chromium fonts-liberation \
+  && rm -rf /var/lib/apt/lists/*
+ENV PDF_CHROMIUM_PATH=/usr/bin/chromium
 COPY --from=build /workspace /workspace
 WORKDIR /workspace/apps/api
 EXPOSE 3000

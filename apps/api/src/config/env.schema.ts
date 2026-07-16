@@ -38,6 +38,10 @@ export const envSchema = z.object({
   CORS_ORIGIN: z.string().default("*"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
 
+  // PDF-Erzeugung (P8.2): Pfad zum Chromium-Binary für playwright-core.
+  // Im Docker-Image auf /usr/bin/chromium gesetzt; leer = Auto-Resolution.
+  PDF_CHROMIUM_PATH: z.string().optional().default(""),
+
   SMTP_HOST: z.string().optional().default(""),
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   SMTP_USER: z.string().optional().default(""),
@@ -45,6 +49,8 @@ export const envSchema = z.object({
   SMTP_FROM: z.string().optional().default(""),
   TEAMS_WEBHOOK_ENABLED: boolFromString.default("false"),
   TEAMS_WEBHOOK_URL: z.string().optional().default(""),
+  // Empfänger-Rollen für Benachrichtigungen (P8.5), kommagetrennt.
+  NOTIFY_ROLES: z.string().optional().default("Administrator,Meister/Schichtleiter"),
 
   // Automatischer Seed beim Start (Rollen/Stammdaten/Bootstrap-Admin), idempotent.
   SEED_ON_STARTUP: boolFromString.default("false"),

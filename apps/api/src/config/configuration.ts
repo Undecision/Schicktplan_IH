@@ -59,6 +59,14 @@ export function buildConfiguration(env: EnvConfig) {
       webhookEnabled: env.TEAMS_WEBHOOK_ENABLED,
       webhookUrl: env.TEAMS_WEBHOOK_URL,
     },
+    notify: {
+      roles: env.NOTIFY_ROLES.split(",")
+        .map((r) => r.trim())
+        .filter(Boolean),
+    },
+    pdf: {
+      chromiumPath: env.PDF_CHROMIUM_PATH,
+    },
     seed: {
       onStartup: env.SEED_ON_STARTUP,
       admin: {

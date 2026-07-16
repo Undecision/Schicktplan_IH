@@ -1,7 +1,8 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { Rolle, type AuthenticatedUser } from "@schichtbuch/shared";
+import { Prioritaet, Rolle, type AuthenticatedUser } from "@schichtbuch/shared";
 import { PrismaService } from "../prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import {
   EINTRAG_DETAIL_INCLUDE,
   EINTRAG_LIST_INCLUDE,
@@ -23,7 +24,10 @@ const BROAD_EDIT_ROLES: readonly Rolle[] = [Rolle.ADMINISTRATOR, Rolle.MEISTER_S
 
 @Injectable()
 export class EintraegeService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   /**
    * Gewerk-Sichtbarkeit als zusätzlicher Datenfilter (keine Mandantentrennung):
@@ -169,6 +173,17 @@ export class EintraegeService {
       data,
       include: EINTRAG_DETAIL_INCLUDE,
     });
+
+    // Benachrichtigung bei kritischen Einträgen (P8.5), asynchron/fire-and-forget.
+    if (eintrag.prioritaet === Prioritaet.KRITISCH) {
+      this.notifications.notifyKritischerEintrag({
+        beschreibung: eintrag.beschreibung,
+        gewerk: eintrag.gewerk.name,
+        technischerPlatz: eintrag.technischerPlatz.bezeichnung,
+        erstellerName: eintrag.ersteller.name,
+      });
+    }
+
     return toDetail(eintrag);
   }
 

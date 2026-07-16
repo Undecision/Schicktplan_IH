@@ -4,6 +4,7 @@ import { DashboardPage } from "@/pages/dashboard-page";
 import { SchichtbuchPage } from "@/pages/schichtbuch-page";
 import { EintragDetailPage } from "@/features/eintraege/eintrag-detail-page";
 import { UebergabePage } from "@/pages/uebergabe-page";
+import { UebergabeDetailPage } from "@/pages/uebergabe-detail-page";
 import { BerichtePage } from "@/pages/berichte-page";
 import { BerichtDetailPage } from "@/pages/bericht-detail-page";
 import { AdminPage } from "@/pages/admin-page";
@@ -37,8 +38,21 @@ export const router = createBrowserRouter([
       },
       {
         path: "uebergabe",
-        element: <UebergabePage />,
+        element: (
+          <RequirePermissionRoute permission="uebergaben:manage">
+            <UebergabePage />
+          </RequirePermissionRoute>
+        ),
         handle: { title: "Schichtübergabe", subtitle: "Übergabe an die nächste Schicht" },
+      },
+      {
+        path: "uebergabe/:id",
+        element: (
+          <RequirePermissionRoute permission="uebergaben:manage">
+            <UebergabeDetailPage />
+          </RequirePermissionRoute>
+        ),
+        handle: { title: "Schichtübergabe", subtitle: "Detailansicht mit PDF-Export" },
       },
       {
         path: "berichte",

@@ -1,0 +1,84 @@
+import { Body, Controller, Get, Param, Patch, Post, Query, Res } from "@nestjs/common";
+import { ApiTags } from "@nestjs/swagger";
+import type { Response } from "express";
+import type { AuthenticatedUser } from "@schichtbuch/shared";
+import { RequirePermissions } from "../auth/decorators/require-permissions.decorator";
+import { CurrentUser } from "../auth/decorators/current-user.decorator";
+import { Audited } from "../audit/decorators/audited.decorator";
+import { UebergabenService } from "./uebergaben.service";
+import { PdfService } from "./pdf.service";
+import { renderUebergabeHtml } from "./uebergabe-pdf.template";
+import { GeneriereUebergabeDto } from "./dto/generiere-uebergabe.dto";
+import { UpdateUebergabeDto } from "./dto/update-uebergabe.dto";
+import { UebergebenDto } from "./dto/uebergeben.dto";
+import { ListUebergabenQueryDto } from "./dto/list-uebergaben.query.dto";
+
+@ApiTags("uebergaben")
+@Controller("uebergaben")
+export class UebergabenController {
+  constructor(
+    private readonly service: UebergabenService,
+    private readonly pdf: PdfService,
+  ) {}
+
+  @RequirePermissions("uebergaben:manage")
+  @Get()
+  list(@CurrentUser() user: AuthenticatedUser, @Query() query: ListUebergabenQueryDto) {
+    return this.service.list(user, query);
+  }
+
+  @RequirePermissions("uebergaben:manage")
+  @Get(":id")
+  findOne(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
+    return this.service.findOne(user, id);
+  }
+
+  @Audited("Schichtuebergabe")
+  @RequirePermissions("uebergaben:manage")
+  @Post("generieren")
+  generieren(@CurrentUser() user: AuthenticatedUser, @Body() dto: GeneriereUebergabeDto) {
+    return this.service.generieren(user, dto);
+  }
+
+  @Audited("Schichtuebergabe")
+  @RequirePermissions("uebergaben:manage")
+  @Patch(":id")
+  update(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id") id: string,
+    @Body() dto: UpdateUebergabeDto,
+  ) {
+    return this.service.update(user, id, dto);
+  }
+
+  @Audited("Schichtuebergabe")
+  @RequirePermissions("uebergaben:manage")
+  @Post(":id/uebergeben")
+  uebergeben(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id") id: string,
+    @Body() dto: UebergebenDto,
+  ) {
+    return this.service.uebergeben(user, id, dto);
+  }
+
+  @RequirePermissions("uebergaben:manage")
+  @Get(":id/pdf")
+  async pdfExport(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id") id: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const uebergabe = await this.service.findOne(user, id);
+    const html = renderUebergabeHtml(uebergabe, "Schichtbuch");
+    const pdf = await this.pdf.renderPdf(html);
+    const rohName = `Schichtuebergabe_${uebergabe.datum.slice(0, 10)}_${uebergabe.gewerk.name}`;
+    const dateiname = `${rohName.replace(/[^\w.-]+/g, "_")}.pdf`;
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `inline; filename="${dateiname}"`,
+      "Content-Length": String(pdf.length),
+    });
+    res.end(pdf);
+  }
+}

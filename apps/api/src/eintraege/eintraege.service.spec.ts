@@ -27,6 +27,10 @@ function makePrisma() {
   };
 }
 
+function makeNotifications() {
+  return { notifyKritischerEintrag: jest.fn() };
+}
+
 function makeEntity(id: string, beschreibung = "x") {
   return {
     id,
@@ -51,7 +55,7 @@ function makeEntity(id: string, beschreibung = "x") {
 describe("EintraegeService – Volltextsuche (P5.1)", () => {
   it("ohne Suchbegriff keine FTS-Query, chronologisch sortiert", async () => {
     const prisma = makePrisma();
-    const service = new EintraegeService(prisma as never);
+    const service = new EintraegeService(prisma as never, makeNotifications() as never);
     await service.list(makeUser(), {});
     expect(prisma.$queryRaw).not.toHaveBeenCalled();
     expect(prisma.schichtbucheintrag.findMany.mock.calls[0][0].orderBy).toEqual({
@@ -67,7 +71,7 @@ describe("EintraegeService – Volltextsuche (P5.1)", () => {
     ]);
     // findMany liefert in beliebiger Reihenfolge – der Service muss nach Rang sortieren.
     prisma.schichtbucheintrag.findMany.mockResolvedValue([makeEntity("a"), makeEntity("b")]);
-    const service = new EintraegeService(prisma as never);
+    const service = new EintraegeService(prisma as never, makeNotifications() as never);
 
     const result = await service.list(makeUser(), { q: "treffer" });
 
@@ -82,7 +86,7 @@ describe("EintraegeService – Volltextsuche (P5.1)", () => {
   it("mit Suchbegriff ohne Treffer: leere Liste ohne zweite Query", async () => {
     const prisma = makePrisma();
     prisma.$queryRaw.mockResolvedValue([]);
-    const service = new EintraegeService(prisma as never);
+    const service = new EintraegeService(prisma as never, makeNotifications() as never);
     const result = await service.list(makeUser(), { q: "nichts" });
     expect(result).toEqual([]);
     expect(prisma.schichtbucheintrag.findMany).not.toHaveBeenCalled();
@@ -92,7 +96,7 @@ describe("EintraegeService – Volltextsuche (P5.1)", () => {
 describe("EintraegeService – Filter (P5.2)", () => {
   it("übernimmt Struktur-Filter inkl. Zeitraum und Teiltreffer", async () => {
     const prisma = makePrisma();
-    const service = new EintraegeService(prisma as never);
+    const service = new EintraegeService(prisma as never, makeNotifications() as never);
     await service.list(makeUser(), {
       status: EintragStatus.OFFEN,
       technischerPlatzId: "11111111-1111-1111-1111-111111111111",
@@ -112,7 +116,7 @@ describe("EintraegeService – Filter (P5.2)", () => {
 describe("EintraegeService – Gewerk-Sichtbarkeit", () => {
   it("filtert nicht, wenn keine Sichtbarkeit konfiguriert ist (sieht alles)", async () => {
     const prisma = makePrisma();
-    const service = new EintraegeService(prisma as never);
+    const service = new EintraegeService(prisma as never, makeNotifications() as never);
     await service.list(makeUser({ gewerkeSichtbarkeit: [] }), {});
     const where = prisma.schichtbucheintrag.findMany.mock.calls[0][0].where;
     expect(where.gewerk).toBeUndefined();
@@ -120,7 +124,7 @@ describe("EintraegeService – Gewerk-Sichtbarkeit", () => {
 
   it("filtert auf zugewiesene Gewerke, wenn Sichtbarkeit gesetzt ist", async () => {
     const prisma = makePrisma();
-    const service = new EintraegeService(prisma as never);
+    const service = new EintraegeService(prisma as never, makeNotifications() as never);
     await service.list(makeUser({ gewerkeSichtbarkeit: ["Mechanik"] }), {});
     const where = prisma.schichtbucheintrag.findMany.mock.calls[0][0].where;
     expect(where.gewerk).toEqual({ name: { in: ["Mechanik"] } });
@@ -129,7 +133,7 @@ describe("EintraegeService – Gewerk-Sichtbarkeit", () => {
   it("findOne wirft 404, wenn der Eintrag nicht sichtbar ist", async () => {
     const prisma = makePrisma();
     prisma.schichtbucheintrag.findFirst.mockResolvedValue(null);
-    const service = new EintraegeService(prisma as never);
+    const service = new EintraegeService(prisma as never, makeNotifications() as never);
     await expect(service.findOne(makeUser(), "x")).rejects.toBeInstanceOf(NotFoundException);
   });
 });
@@ -164,7 +168,7 @@ describe("EintraegeService – Bearbeitungsregel", () => {
       gewerk: { name: "Mechanik" },
     });
     prisma.schichtbucheintrag.update.mockResolvedValue(detailReturn);
-    const service = new EintraegeService(prisma as never);
+    const service = new EintraegeService(prisma as never, makeNotifications() as never);
     await expect(
       service.update(makeUser({ id: "user-1" }), "e1", { status: EintragStatus.ERLEDIGT }),
     ).resolves.toBeDefined();
@@ -177,7 +181,7 @@ describe("EintraegeService – Bearbeitungsregel", () => {
       erstellerId: "someone-else",
       gewerk: { name: "Mechanik" },
     });
-    const service = new EintraegeService(prisma as never);
+    const service = new EintraegeService(prisma as never, makeNotifications() as never);
     await expect(
       service.update(makeUser({ id: "user-1", rollen: [Rolle.INSTANDHALTER] }), "e1", {}),
     ).rejects.toBeInstanceOf(ForbiddenException);
@@ -191,7 +195,7 @@ describe("EintraegeService – Bearbeitungsregel", () => {
       gewerk: { name: "Mechanik" },
     });
     prisma.schichtbucheintrag.update.mockResolvedValue(detailReturn);
-    const service = new EintraegeService(prisma as never);
+    const service = new EintraegeService(prisma as never, makeNotifications() as never);
     await expect(
       service.update(makeUser({ id: "user-1", rollen: [Rolle.MEISTER_SCHICHTLEITER] }), "e1", {}),
     ).resolves.toBeDefined();
