@@ -6,7 +6,8 @@ import {
   ArrowLeftRight,
   BarChart3,
   Settings,
-  Plus,
+  Info,
+  AlertTriangle,
   Wrench,
 } from "lucide-react";
 import type { PermissionKey } from "@schichtbuch/shared";
@@ -41,6 +42,7 @@ export function Sidebar() {
   const visibleNavItems = navItems.filter(
     (item) => !item.permission || hasPermission(item.permission),
   );
+  const darfErfassen = hasPermission("eintraege:create");
 
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground">
@@ -75,15 +77,24 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="px-3 pb-4">
-        <NavLink
-          to="/schichtbuch?erfassen=1"
-          className="flex h-11 items-center justify-center gap-2 rounded-md bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          <Plus className="h-4 w-4" />
-          Neuer Eintrag
-        </NavLink>
-      </div>
+      {darfErfassen && (
+        <div className="space-y-2 px-3 pb-4">
+          <NavLink
+            to="/schichtbuch?erfassen=schichtinformation"
+            className="flex h-11 items-center justify-center gap-2 rounded-md bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            <Info className="h-4 w-4" />
+            Schichtinformation
+          </NavLink>
+          <NavLink
+            to="/schichtbuch?erfassen=stoerung"
+            className="flex h-11 items-center justify-center gap-2 rounded-md border border-sidebar-accent bg-sidebar-accent/40 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
+          >
+            <AlertTriangle className="h-4 w-4" />
+            Störung
+          </NavLink>
+        </div>
+      )}
     </aside>
   );
 }

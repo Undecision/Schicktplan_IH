@@ -114,12 +114,14 @@ export function EintraegeListPage() {
     return () => clearTimeout(handle);
   }, [searchInput]);
 
-  // Sidebar-"Neuer Eintrag" navigiert mit ?erfassen=1 (Standard: Schichtinformation).
+  // Sidebar-Buttons navigieren mit ?erfassen=<typ> und öffnen direkt das passende
+  // Formular. "1" bleibt als Alias für Schichtinformation erhalten (Abwärtskompatibilität).
   useEffect(() => {
-    if (searchParams.get("erfassen") === "1") {
-      neuerEintrag(EintragTyp.SCHICHTINFORMATION);
-      setParam("erfassen", "");
-    }
+    const erfassen = searchParams.get("erfassen");
+    if (!erfassen) return;
+    const typ = erfassen === "stoerung" ? EintragTyp.STOERUNG : EintragTyp.SCHICHTINFORMATION;
+    neuerEintrag(typ);
+    setParam("erfassen", "");
   }, [searchParams]);
 
   const { data: eintraege = [], isLoading } = useEintraege(filter);
