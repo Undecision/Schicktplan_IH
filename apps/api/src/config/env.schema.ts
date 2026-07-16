@@ -45,6 +45,12 @@ export const envSchema = z.object({
   SMTP_FROM: z.string().optional().default(""),
   TEAMS_WEBHOOK_ENABLED: boolFromString.default("false"),
   TEAMS_WEBHOOK_URL: z.string().optional().default(""),
+
+  // Automatischer Seed beim Start (Rollen/Stammdaten/Bootstrap-Admin), idempotent.
+  SEED_ON_STARTUP: boolFromString.default("false"),
+  BOOTSTRAP_ADMIN_EMAIL: z.string().optional().default(""),
+  BOOTSTRAP_ADMIN_PASSWORD: z.string().optional().default(""),
+  BOOTSTRAP_ADMIN_NAME: z.string().optional().default("Administrator"),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

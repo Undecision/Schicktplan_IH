@@ -26,7 +26,7 @@ Wichtige Variablen:
 - `POSTGRES_*`, `S3_*` (MinIO-Zugangsdaten), `AUTH_JWT_*_SECRET`,
   `BACKUP_ENCRYPTION_KEY` – produktiv immer individuell setzen.
 
-## 3. Start
+## 3. Start (erster Deploy)
 
 Alle Befehle aus dem Repo-Root, mit explizitem `--env-file` (liegt außerhalb
 von `infra/`):
@@ -35,15 +35,34 @@ von `infra/`):
 docker compose --env-file .env -f infra/docker-compose.yml up -d --build
 ```
 
-Healthchecks sorgen dafür, dass `api`/`web` erst starten, wenn Postgres und
-MinIO bereit sind, und Caddy erst, wenn `api`/`web` gesund sind.
+Das war's – beim ersten Start passiert automatisch:
 
-Status prüfen:
+1. Healthchecks sorgen dafür, dass `api`/`web` erst starten, wenn Postgres und
+   MinIO bereit sind, und Caddy erst, wenn `api`/`web` gesund sind.
+2. Der API-Container wendet die **Datenbank-Migrationen** an
+   (`prisma migrate deploy` im Entrypoint).
+3. Ist `SEED_ON_STARTUP=true` gesetzt (Standard in `.env.example`), legt die API
+   idempotent **Rollen, Permissions, Stammdaten-Startwerte und den
+   Bootstrap-Administrator** an (aus `BOOTSTRAP_ADMIN_*`).
+
+Status/Logs prüfen:
 
 ```bash
 docker compose --env-file .env -f infra/docker-compose.yml ps
 docker compose --env-file .env -f infra/docker-compose.yml logs -f api
 ```
+
+### Erster Login
+
+Nach dem Start ist die Anwendung unter `https://<CADDY_DOMAIN>` erreichbar.
+Anmeldung mit den `BOOTSTRAP_ADMIN_*`-Werten aus der `.env`
+(Standard-Vorlage: `admin@example.com` / `Change-Me-Admin-Password-123`).
+
+**Wichtig:** Direkt nach dem ersten Login ein eigenes Admin-Konto mit sicherem
+Passwort anlegen, dann `SEED_ON_STARTUP` auf `false` setzen und die
+`BOOTSTRAP_ADMIN_PASSWORD` aus der produktiven `.env` entfernen. Der Seed
+überschreibt ein bereits existierendes Admin-Passwort NICHT – ein
+Container-Neustart ist also unkritisch.
 
 ## 4. Reverse-Proxy-Domain
 
@@ -80,10 +99,15 @@ git pull
 docker compose --env-file .env -f infra/docker-compose.yml up -d --build
 ```
 
-Datenbank-Migrationen laufen nicht automatisch beim Container-Start (bewusst,
-um versehentliche Migrationen zu vermeiden). Nach einem Update mit
-Schema-Änderungen:
+Neue Datenbank-Migrationen werden beim Neustart des API-Containers automatisch
+angewendet (`prisma migrate deploy` im Entrypoint) – kein manueller Schritt
+nötig. Der Seed ist idempotent und richtet keinen Schaden an, falls
+`SEED_ON_STARTUP` noch auf `true` steht.
 
-```bash
-docker compose --env-file .env -f infra/docker-compose.yml exec api pnpm prisma:deploy
-```
+## 8. Hinweis zum Image-Build
+
+Die API läuft auf `node:22-slim` (Debian/glibc), damit die nativen Abhängigkeiten
+(argon2) und die Prisma-Engine ohne Sonderbehandlung bauen. Der Build braucht
+Internet-Zugriff auf die npm-Registry und Docker Hub. Der erste `--build` dauert
+je nach Verbindung einige Minuten (Kompilierung von argon2, Prisma-Generate,
+Vite-Build).

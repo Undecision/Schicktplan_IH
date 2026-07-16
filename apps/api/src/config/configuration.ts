@@ -59,6 +59,14 @@ export function buildConfiguration(env: EnvConfig) {
       webhookEnabled: env.TEAMS_WEBHOOK_ENABLED,
       webhookUrl: env.TEAMS_WEBHOOK_URL,
     },
+    seed: {
+      onStartup: env.SEED_ON_STARTUP,
+      admin: {
+        email: env.BOOTSTRAP_ADMIN_EMAIL,
+        password: env.BOOTSTRAP_ADMIN_PASSWORD,
+        name: env.BOOTSTRAP_ADMIN_NAME,
+      },
+    },
   } as const;
 }
 
