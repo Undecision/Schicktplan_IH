@@ -8,17 +8,33 @@ import {
   Plus,
   Wrench,
 } from "lucide-react";
+import type { PermissionKey } from "@schichtbuch/shared";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/features/auth/auth-context";
 
-const navItems = [
+interface NavItem {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  end?: boolean;
+  /** Nur anzeigen, wenn der Nutzer diese Permission besitzt. */
+  permission?: PermissionKey;
+}
+
+const navItems: NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/schichtbuch", label: "Schichtbuch", icon: ClipboardList },
   { to: "/uebergabe", label: "Übergabe", icon: ArrowLeftRight },
   { to: "/berichte", label: "Berichte", icon: BarChart3 },
-  { to: "/admin", label: "Admin", icon: Settings },
+  { to: "/admin", label: "Admin", icon: Settings, permission: "admin:benutzer:manage" },
 ];
 
 export function Sidebar() {
+  const { hasPermission } = useAuth();
+  const visibleNavItems = navItems.filter(
+    (item) => !item.permission || hasPermission(item.permission),
+  );
+
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground">
       <div className="flex h-touch items-center gap-2 px-5">
@@ -32,7 +48,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-2">
-        {navItems.map((item) => (
+        {visibleNavItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

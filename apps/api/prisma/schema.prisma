@@ -103,19 +103,80 @@ model UserRole {
   @@map("user_roles")
 }
 
-/// Minimaler Gewerk-Stub für die Sichtbarkeitsdimension (P1.1). Volle CRUD-API,
-/// weitere Felder und Seed-Startwerte (Elektrotechnik, Mechanik, Versorgung/Medien)
-/// folgen in Phase 2 (P2.1/P2.2) – dieses Modell wird dort erweitert, nicht ersetzt.
+/// Gewerk – Sichtbarkeitsdimension (P1.1) und Stammdatum (P2.1).
+/// Startwerte: Elektrotechnik, Mechanik, Versorgung/Medien (siehe seed.ts).
 model Gewerk {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String   @unique
-  aktiv     Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @unique
+  aktiv     Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   users User[] @relation("UserGewerkeSichtbarkeit")
 
   @@map("gewerke")
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2 – Stammdaten
+// ---------------------------------------------------------------------------
+
+/// Fachbereich (P2.1). Startwerte: Druck, Beschichtung, Endfertigung,
+/// Medienversorgung, Palettierung, Logistik.
+model Fachbereich {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @unique
+  aktiv     Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@map("fachbereiche")
+}
+
+/// Technischer Platz (P2.1) – SAP-PM-Auswahlliste + Freitext.
+/// `sapSyncFaehig` markiert Plätze, die mit SAP synchronisiert werden können
+/// (Vorbereitung für Modul-/API-Schnittstelle, Phase 12).
+model TechnischerPlatz {
+  id            String    @id @default(uuid()) @db.Uuid
+  bezeichnung   String
+  code          String    @unique
+  sapSyncFaehig Boolean   @default(false)
+  aktiv         Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  @@map("technische_plaetze")
+}
+
+/// Schlagwort (P2.1). Startwerte: Pneumatik, Hydraulik, SPS, Elektrik,
+/// Mechanik, Sicherheit.
+model Schlagwort {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @unique
+  aktiv     Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@map("schlagwoerter")
+}
+
+/// Schicht-Definition (P2.1): Früh/Spät/Nacht mit Start-/Endzeit.
+/// Zeiten als "HH:MM"-String (lokale Werkszeit, keine Zeitzone nötig).
+model SchichtDefinition {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @unique
+  startzeit String
+  endzeit   String
+  aktiv     Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@map("schicht_definitionen")
 }
 
 enum AuditAction {

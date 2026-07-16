@@ -36,8 +36,11 @@ Konventionen für neue Modelle: siehe Kommentar-Header in `prisma/schema.prisma`
 - `GET/POST/PATCH /api/users`, `POST /api/users/:id/deactivate`,
   `POST /api/users/:id/reset-password` – Benutzerverwaltung
   (`admin:benutzer:manage`)
-- `GET /api/gewerke` – Gewerke-Liste (nur lesend, für Benutzerformular; volle
-  Verwaltung folgt in Phase 2)
+- Stammdaten (Phase 2) – je Ressource `GET` (lesend, alle Authentifizierten;
+  `?includeInactive=true` für die Verwaltung), `POST`/`PATCH` schreibend
+  (`admin:stammdaten:manage`); Deaktivieren = `PATCH { aktiv: false }`:
+  `/api/gewerke`, `/api/fachbereiche`, `/api/technische-plaetze`,
+  `/api/schlagwoerter`, `/api/schicht-definitionen`
 
 Alle Endpunkte außer `/health`, `/` und `/auth/login|refresh|logout` verlangen
 einen gültigen `Authorization: Bearer <accessToken>`-Header (siehe

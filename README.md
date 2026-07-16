@@ -88,6 +88,11 @@ Administrator · Meister/Schichtleiter · Instandhalter · Leseberechtigte.
 
 Dieses Repository wird entlang der Phasen 0–11 des Lastenhefts aufgebaut
 (Fundament → Auth/RBAC → Stammdaten → Schichtbucheinträge → … → Härtung/DSGVO).
-Der aktuelle Stand: **Phase 0 (Fundament)** und **Phase 1 (Auth & RBAC)**
-abgeschlossen – lokale Anmeldung, RBAC-Guards, Audit-Log-Fundament und
-Benutzerverwaltung sind funktionsfähig.
+Aktueller Stand:
+
+- **Phase 0 (Fundament)** – Monorepo, Docker-Infra, Backend/Frontend-Skeleton
+- **Phase 1 (Auth & RBAC)** – lokale Anmeldung, RBAC-Guards, Audit-Log,
+  Benutzerverwaltung
+- **Phase 2 (Stammdaten)** – Gewerke, Fachbereiche, Technische Plätze,
+  Schlagwörter, Schicht-Definitionen inkl. CRUD-API und Admin-Verwaltung
+  (Anlegen/Bearbeiten/Deaktivieren, Duplikatprüfung)

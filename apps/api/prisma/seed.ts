@@ -126,15 +126,39 @@ async function seedBootstrapAdmin() {
 }
 
 async function seedFachbereiche() {
-  // TODO (Phase 2): Druck, Beschichtung, Endfertigung, Medienversorgung, Palettierung, Logistik
+  const namen = [
+    "Druck",
+    "Beschichtung",
+    "Endfertigung",
+    "Medienversorgung",
+    "Palettierung",
+    "Logistik",
+  ];
+  for (const name of namen) {
+    await prisma.fachbereich.upsert({ where: { name }, create: { name }, update: {} });
+  }
 }
 
 async function seedSchlagwoerter() {
-  // TODO (Phase 2): Pneumatik, Hydraulik, SPS, Elektrik, Mechanik, Sicherheit
+  const namen = ["Pneumatik", "Hydraulik", "SPS", "Elektrik", "Mechanik", "Sicherheit"];
+  for (const name of namen) {
+    await prisma.schlagwort.upsert({ where: { name }, create: { name }, update: {} });
+  }
 }
 
 async function seedSchichtDefinitionen() {
-  // TODO (Phase 2): Früh/Spät/Nacht mit Start-/Endzeit
+  const schichten = [
+    { name: "Frühschicht", startzeit: "06:00", endzeit: "14:00" },
+    { name: "Spätschicht", startzeit: "14:00", endzeit: "22:00" },
+    { name: "Nachtschicht", startzeit: "22:00", endzeit: "06:00" },
+  ];
+  for (const schicht of schichten) {
+    await prisma.schichtDefinition.upsert({
+      where: { name: schicht.name },
+      create: schicht,
+      update: {},
+    });
+  }
 }
 
 async function main() {
