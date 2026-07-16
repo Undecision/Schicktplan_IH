@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { AlertTriangle, ChevronDown, Info, Search, SlidersHorizontal, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronDown,
+  Info,
+  Paperclip,
+  Search,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 import {
   EINTRAG_STATUS,
   EINTRAG_TYP_LABELS,
@@ -282,8 +290,23 @@ export function EintraegeListPage() {
                 <TableCell className="whitespace-nowrap text-muted-foreground">
                   {formatDauer(eintrag.bearbeitungsdauerMinuten)}
                 </TableCell>
-                <TableCell className="max-w-md truncate">
-                  <Highlighted text={eintrag.highlight} fallback={eintrag.beschreibung} />
+                <TableCell className="max-w-md">
+                  <div className="flex items-center gap-1.5">
+                    {eintrag.anzahlAnhaenge > 0 && (
+                      <span
+                        className="flex shrink-0 items-center gap-0.5 text-muted-foreground"
+                        title={`${eintrag.anzahlAnhaenge} Anhang/Anhänge`}
+                      >
+                        <Paperclip className="h-3.5 w-3.5" />
+                        {eintrag.anzahlAnhaenge > 1 && (
+                          <span className="text-xs">{eintrag.anzahlAnhaenge}</span>
+                        )}
+                      </span>
+                    )}
+                    <span className="truncate">
+                      <Highlighted text={eintrag.highlight} fallback={eintrag.beschreibung} />
+                    </span>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

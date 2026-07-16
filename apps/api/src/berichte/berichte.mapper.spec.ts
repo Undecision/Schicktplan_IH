@@ -50,6 +50,7 @@ function eintrag(
     bearbeitungBeginn: null,
     bearbeitungEnde: null,
     bearbeitungsdauerMinuten: null,
+    anzahlAnhaenge: 0,
     schlagwoerter: [],
   };
 }

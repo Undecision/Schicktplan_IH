@@ -9,6 +9,7 @@ import {
 } from "@schichtbuch/shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RequirePermission } from "@/features/auth/protected-route";
 import { fetchAnhangBlob } from "./anhaenge-api";
 import { useAnhaenge, useDeleteAnhang, useUploadAnhang } from "./queries";
@@ -37,6 +38,7 @@ export function EintragAnhaenge({ eintragId }: { eintragId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
   const [currentName, setCurrentName] = useState<string | null>(null);
+  const [vorschau, setVorschau] = useState<Anhang | null>(null);
 
   function validate(file: File): string | null {
     if (!ANHANG_ERLAUBTE_MIME_TYPES.includes(file.type as never)) {
@@ -165,14 +167,21 @@ export function EintragAnhaenge({ eintragId }: { eintragId: string }) {
               key={anhang.id}
               className="flex items-center gap-3 rounded-md border border-border p-2"
             >
-              <AnhangVorschau eintragId={eintragId} anhang={anhang} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{anhang.dateiname}</p>
-                <p className="text-xs text-muted-foreground">
-                  {formatBytes(anhang.groesse)} · {anhang.hochgeladenVon.name} ·{" "}
-                  {formatDateTime(anhang.createdAt)}
-                </p>
-              </div>
+              <button
+                type="button"
+                className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                title="Vorschau öffnen"
+                onClick={() => setVorschau(anhang)}
+              >
+                <AnhangVorschau eintragId={eintragId} anhang={anhang} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium hover:underline">{anhang.dateiname}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatBytes(anhang.groesse)} · {anhang.hochgeladenVon.name} ·{" "}
+                    {formatDateTime(anhang.createdAt)}
+                  </p>
+                </div>
+              </button>
               <Button
                 variant="ghost"
                 size="icon"
@@ -196,7 +205,124 @@ export function EintragAnhaenge({ eintragId }: { eintragId: string }) {
           ))}
         </ul>
       </CardContent>
+
+      <AnhangVorschauDialog
+        eintragId={eintragId}
+        anhang={vorschau}
+        onOpenChange={(open) => !open && setVorschau(null)}
+        onDownload={handleDownload}
+      />
     </Card>
+  );
+}
+
+/**
+ * Vorschau-Popup für einen Anhang: Bilder und PDFs werden inline dargestellt,
+ * Videos abgespielt, Text angezeigt; für nicht darstellbare Typen (DOCX/XLSX)
+ * gibt es einen Hinweis mit Download. Der Blob wird RBAC-geschützt geladen.
+ */
+function AnhangVorschauDialog({
+  eintragId,
+  anhang,
+  onOpenChange,
+  onDownload,
+}: {
+  eintragId: string;
+  anhang: Anhang | null;
+  onOpenChange: (open: boolean) => void;
+  onDownload: (anhang: Anhang) => void | Promise<void>;
+}) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [text, setText] = useState<string | null>(null);
+  const [status, setStatus] = useState<"laedt" | "bereit" | "fehler">("laedt");
+
+  useEffect(() => {
+    if (!anhang) return;
+    let objectUrl: string | null = null;
+    let cancelled = false;
+    setSrc(null);
+    setText(null);
+    setStatus("laedt");
+    fetchAnhangBlob(eintragId, anhang.id)
+      .then(async (blob) => {
+        if (cancelled) return;
+        if (anhang.mime === "text/plain") {
+          setText(await blob.text());
+        } else {
+          objectUrl = URL.createObjectURL(blob);
+          setSrc(objectUrl);
+        }
+        setStatus("bereit");
+      })
+      .catch(() => !cancelled && setStatus("fehler"));
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [eintragId, anhang]);
+
+  const isImage = anhang ? istBildMime(anhang.mime) : false;
+  const isPdf = anhang?.mime === "application/pdf";
+  const isVideo = anhang?.mime === "video/mp4";
+  const isText = anhang?.mime === "text/plain";
+  const darstellbar = isImage || isPdf || isVideo || isText;
+
+  return (
+    <Dialog open={!!anhang} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] max-w-4xl overflow-hidden">
+        <DialogHeader>
+          <DialogTitle className="truncate pr-8">{anhang?.dateiname}</DialogTitle>
+        </DialogHeader>
+
+        <div className="flex min-h-[300px] items-center justify-center overflow-auto">
+          {status === "laedt" && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Vorschau wird geladen…
+            </div>
+          )}
+          {status === "fehler" && (
+            <p className="text-sm text-destructive">Vorschau konnte nicht geladen werden.</p>
+          )}
+          {status === "bereit" && isImage && src && (
+            <img
+              src={src}
+              alt={anhang?.dateiname}
+              className="max-h-[70vh] w-auto rounded object-contain"
+            />
+          )}
+          {status === "bereit" && isPdf && src && (
+            <iframe
+              src={src}
+              title={anhang?.dateiname}
+              className="h-[70vh] w-full rounded border-0"
+            />
+          )}
+          {status === "bereit" && isVideo && src && (
+            <video src={src} controls className="max-h-[70vh] w-full rounded" />
+          )}
+          {status === "bereit" && isText && text !== null && (
+            <pre className="max-h-[70vh] w-full overflow-auto whitespace-pre-wrap rounded bg-muted p-3 text-xs">
+              {text}
+            </pre>
+          )}
+          {status === "bereit" && !darstellbar && (
+            <div className="flex flex-col items-center gap-3 text-center text-muted-foreground">
+              <FileIcon className="h-12 w-12" />
+              <p className="text-sm">Für diesen Dateityp ist keine Vorschau verfügbar.</p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end">
+          {anhang && (
+            <Button variant="outline" onClick={() => void onDownload(anhang)}>
+              <Download className="h-4 w-4" />
+              Herunterladen
+            </Button>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

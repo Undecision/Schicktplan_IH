@@ -104,6 +104,8 @@ export interface SchichtbucheintragListItem extends BaseEntity {
   bearbeitungEnde: string | null;
   /** Abgeleitete Bearbeitungsdauer in Minuten (nur wenn Beginn und Ende gesetzt). */
   bearbeitungsdauerMinuten: number | null;
+  /** Anzahl der Dateianhänge (für die Büroklammer-Anzeige in der Liste). */
+  anzahlAnhaenge: number;
   /**
    * Optionaler Treffer-Auszug der Volltextsuche (P5.1). Enthält die Marker
    * `⟦…⟧` um die gefundenen Begriffe; das Frontend rendert diese als Hervorhebung.

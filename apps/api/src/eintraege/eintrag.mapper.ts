@@ -17,6 +17,7 @@ export const EINTRAG_LIST_INCLUDE = {
   ersteller: { select: { id: true, name: true } },
   verantwortlicher: { select: { id: true, name: true } },
   schlagwoerter: { select: { id: true, name: true } },
+  _count: { select: { anhaenge: true } },
 } satisfies Prisma.SchichtbucheintragInclude;
 
 export const EINTRAG_DETAIL_INCLUDE = {
@@ -66,6 +67,7 @@ export function toListItem(eintrag: EintragListPayload): SchichtbucheintragListI
     bearbeitungBeginn: eintrag.bearbeitungBeginn ? eintrag.bearbeitungBeginn.toISOString() : null,
     bearbeitungEnde: eintrag.bearbeitungEnde ? eintrag.bearbeitungEnde.toISOString() : null,
     bearbeitungsdauerMinuten: dauerMinuten(eintrag.bearbeitungBeginn, eintrag.bearbeitungEnde),
+    anzahlAnhaenge: eintrag._count.anhaenge,
   };
 }
 

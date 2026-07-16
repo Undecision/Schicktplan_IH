@@ -63,6 +63,7 @@ function makeEntity(id: string, beschreibung = "x") {
     bearbeitungBeginn: null,
     bearbeitungEnde: null,
     kommentare: [],
+    _count: { anhaenge: 0 },
   };
 }
 
@@ -231,9 +232,13 @@ describe("EintraegeService – Bearbeitungsregel", () => {
     createdAt: new Date(),
     updatedAt: new Date(),
     zeitpunkt: new Date(),
+    typ: EintragTyp.SCHICHTINFORMATION,
     prioritaet: Prioritaet.NORMAL,
     status: EintragStatus.OFFEN,
     beschreibung: "x",
+    stoerung: null,
+    ursache: null,
+    korrekturmassnahme: null,
     sapIhAuftrag: null,
     easyFlowTag: null,
     faelligkeitsdatum: null,
@@ -245,6 +250,9 @@ describe("EintraegeService – Bearbeitungsregel", () => {
     verantwortlicher: null,
     schlagwoerter: [],
     kommentare: [],
+    bearbeitungBeginn: null,
+    bearbeitungEnde: null,
+    _count: { anhaenge: 0 },
   };
 
   it("Ersteller darf eigenen Eintrag bearbeiten", async () => {
