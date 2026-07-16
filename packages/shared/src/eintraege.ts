@@ -77,7 +77,17 @@ export interface SchichtbucheintragListItem extends BaseEntity {
   sapIhAuftrag: string | null;
   easyFlowTag: string | null;
   schlagwoerter: Referenz[];
+  /**
+   * Optionaler Treffer-Auszug der Volltextsuche (P5.1). Enthält die Marker
+   * `⟦…⟧` um die gefundenen Begriffe; das Frontend rendert diese als Hervorhebung.
+   * Nur gesetzt, wenn die Liste über eine Suchanfrage (`q`) geladen wurde.
+   */
+  highlight?: string | null;
 }
+
+/** Marker, mit denen die Volltextsuche Treffer im Highlight-Auszug umschließt. */
+export const HIGHLIGHT_START = "⟦";
+export const HIGHLIGHT_END = "⟧";
 
 export interface SchichtbucheintragDetail extends SchichtbucheintragListItem {
   faelligkeitsdatum: string | null;
@@ -107,9 +117,21 @@ export interface CreateKommentarRequest {
 }
 
 export interface EintragFilter {
+  /** Volltextsuche (P5.1) über Beschreibung, SAP-Auftrag und EasyFlow-TAG. */
+  q?: string;
   status?: EintragStatus;
   prioritaet?: Prioritaet;
   gewerkId?: string;
   fachbereichId?: string;
   schichtId?: string;
+  technischerPlatzId?: string;
+  erstellerId?: string;
+  /** SAP-IH-Auftrag (Teiltreffer). */
+  sapIhAuftrag?: string;
+  /** EasyFlow-TAG (Teiltreffer). */
+  easyFlowTag?: string;
+  /** Zeitraum-Untergrenze (ISO-Datum, inklusive) auf `zeitpunkt`. */
+  von?: string;
+  /** Zeitraum-Obergrenze (ISO-Datum, inklusive) auf `zeitpunkt`. */
+  bis?: string;
 }

@@ -247,10 +247,16 @@ model Schichtbucheintrag {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  /// Volltextsuche (P5.1): generierte tsvector-Spalte über beschreibung (A),
+  /// sapIhAuftrag/easyFlowTag (B). Wird ausschließlich per Migration (GENERATED
+  /// ALWAYS AS … STORED) und GIN-Index gepflegt – daher als Unsupported markiert.
+  suchVektor Unsupported("tsvector")?
+
   @@index([gewerkId])
   @@index([status])
   @@index([prioritaet])
   @@index([zeitpunkt])
+  @@index([suchVektor], type: Gin)
   @@map("schichtbucheintraege")
 }
 

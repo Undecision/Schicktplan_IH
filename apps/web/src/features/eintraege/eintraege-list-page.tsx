@@ -1,16 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus, Search, SlidersHorizontal, X } from "lucide-react";
 import {
   EINTRAG_STATUS,
-  EintragStatus,
   PRIORITAETEN,
   PRIORITAET_LABELS,
-  Prioritaet,
   STATUS_LABELS,
   type EintragFilter,
 } from "@schichtbuch/shared";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -30,8 +29,26 @@ import { RequirePermission } from "@/features/auth/protected-route";
 import { useEintraege, useFormOptions } from "./queries";
 import { PrioritaetBadge, StatusBadge } from "./badges";
 import { EintragFormDialog } from "./eintrag-form-dialog";
+import { Highlighted } from "./highlight";
 
 const ALL = "__all__";
+
+// Filter-Schlüssel, die als Query-Parameter in der URL persistiert werden
+// (teilbare Ansichten, P5.2). Nicht persistiert: `erfassen` (UI-Trigger).
+const FILTER_KEYS = [
+  "q",
+  "status",
+  "prioritaet",
+  "gewerkId",
+  "fachbereichId",
+  "schichtId",
+  "technischerPlatzId",
+  "erstellerId",
+  "sapIhAuftrag",
+  "easyFlowTag",
+  "von",
+  "bis",
+] as const;
 
 function formatDateTime(iso: string) {
   const d = new Date(iso);
@@ -43,49 +60,68 @@ export function EintraegeListPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: options } = useFormOptions();
-
-  const [status, setStatus] = useState<EintragStatus | "">("");
-  const [prioritaet, setPrioritaet] = useState<Prioritaet | "">("");
-  const [gewerkId, setGewerkId] = useState<string>("");
   const [formOpen, setFormOpen] = useState(false);
+  const [showMore, setShowMore] = useState(false);
+
+  // Filter direkt aus der URL ableiten → teilbare/lesbare Ansichten.
+  const filter = useMemo<EintragFilter>(() => {
+    const f: EintragFilter = {};
+    for (const key of FILTER_KEYS) {
+      const value = searchParams.get(key);
+      if (value) (f as Record<string, string>)[key] = value;
+    }
+    return f;
+  }, [searchParams]);
+
+  function setParam(key: string, value: string) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (value) next.set(key, value);
+        else next.delete(key);
+        return next;
+      },
+      { replace: true },
+    );
+  }
+
+  function resetFilters() {
+    setSearchParams({}, { replace: true });
+    setSearchInput("");
+  }
+
+  // Suchfeld mit Debounce, damit nicht jeder Tastendruck eine Query auslöst.
+  const [searchInput, setSearchInput] = useState(filter.q ?? "");
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      if ((filter.q ?? "") !== searchInput) setParam("q", searchInput.trim());
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [searchInput]);
 
   // Sidebar-"Neuer Eintrag" navigiert mit ?erfassen=1.
   useEffect(() => {
     if (searchParams.get("erfassen") === "1") {
       setFormOpen(true);
-      searchParams.delete("erfassen");
-      setSearchParams(searchParams, { replace: true });
+      setParam("erfassen", "");
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams]);
 
-  const filter: EintragFilter = {
-    ...(status ? { status } : {}),
-    ...(prioritaet ? { prioritaet } : {}),
-    ...(gewerkId ? { gewerkId } : {}),
-  };
   const { data: eintraege = [], isLoading } = useEintraege(filter);
+
+  const aktiveFilter = FILTER_KEYS.filter((k) => k !== "q" && searchParams.get(k)).length;
+  const hatFilter = aktiveFilter > 0 || !!filter.q;
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-wrap gap-3">
-          <FilterSelect
-            label="Status"
-            value={status}
-            onChange={(v) => setStatus(v as EintragStatus | "")}
-            options={EINTRAG_STATUS.map((s) => ({ value: s, label: STATUS_LABELS[s] }))}
-          />
-          <FilterSelect
-            label="Priorität"
-            value={prioritaet}
-            onChange={(v) => setPrioritaet(v as Prioritaet | "")}
-            options={PRIORITAETEN.map((p) => ({ value: p, label: PRIORITAET_LABELS[p] }))}
-          />
-          <FilterSelect
-            label="Gewerk"
-            value={gewerkId}
-            onChange={setGewerkId}
-            options={(options?.gewerke ?? []).map((g) => ({ value: g.id, label: g.name }))}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="relative w-full max-w-md">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Volltextsuche (Beschreibung, SAP-Auftrag, TAG)…"
+            className="pl-9"
           />
         </div>
         <RequirePermission permission="eintraege:create">
@@ -95,6 +131,83 @@ export function EintraegeListPage() {
           </Button>
         </RequirePermission>
       </div>
+
+      <div className="flex flex-wrap items-end gap-3">
+        <FilterSelect
+          label="Status"
+          value={filter.status ?? ""}
+          onChange={(v) => setParam("status", v)}
+          options={EINTRAG_STATUS.map((s) => ({ value: s, label: STATUS_LABELS[s] }))}
+        />
+        <FilterSelect
+          label="Priorität"
+          value={filter.prioritaet ?? ""}
+          onChange={(v) => setParam("prioritaet", v)}
+          options={PRIORITAETEN.map((p) => ({ value: p, label: PRIORITAET_LABELS[p] }))}
+        />
+        <FilterSelect
+          label="Gewerk"
+          value={filter.gewerkId ?? ""}
+          onChange={(v) => setParam("gewerkId", v)}
+          options={(options?.gewerke ?? []).map((g) => ({ value: g.id, label: g.name }))}
+        />
+        <Button variant="outline" size="sm" onClick={() => setShowMore((v) => !v)}>
+          <SlidersHorizontal className="h-4 w-4" />
+          Weitere Filter{aktiveFilter > 2 ? ` (${aktiveFilter})` : ""}
+        </Button>
+        {hatFilter && (
+          <Button variant="ghost" size="sm" onClick={resetFilters}>
+            <X className="h-4 w-4" />
+            Zurücksetzen
+          </Button>
+        )}
+      </div>
+
+      {showMore && (
+        <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-3">
+          <FilterSelect
+            label="Fachbereich"
+            value={filter.fachbereichId ?? ""}
+            onChange={(v) => setParam("fachbereichId", v)}
+            options={(options?.fachbereiche ?? []).map((f) => ({ value: f.id, label: f.name }))}
+          />
+          <FilterSelect
+            label="Schicht"
+            value={filter.schichtId ?? ""}
+            onChange={(v) => setParam("schichtId", v)}
+            options={(options?.schichten ?? []).map((s) => ({ value: s.id, label: s.name }))}
+          />
+          <FilterSelect
+            label="Techn. Platz"
+            value={filter.technischerPlatzId ?? ""}
+            onChange={(v) => setParam("technischerPlatzId", v)}
+            options={(options?.technischePlaetze ?? []).map((t) => ({
+              value: t.id,
+              label: t.name,
+            }))}
+          />
+          <FilterSelect
+            label="Ersteller"
+            value={filter.erstellerId ?? ""}
+            onChange={(v) => setParam("erstellerId", v)}
+            options={(options?.benutzer ?? []).map((b) => ({ value: b.id, label: b.name }))}
+          />
+          <TextFilter
+            label="SAP-Auftrag"
+            value={filter.sapIhAuftrag ?? ""}
+            onChange={(v) => setParam("sapIhAuftrag", v)}
+            placeholder="700123456"
+          />
+          <TextFilter
+            label="EasyFlow-TAG"
+            value={filter.easyFlowTag ?? ""}
+            onChange={(v) => setParam("easyFlowTag", v)}
+            placeholder="PW4-M-1023"
+          />
+          <DateFilter label="Von" value={filter.von ?? ""} onChange={(v) => setParam("von", v)} />
+          <DateFilter label="Bis" value={filter.bis ?? ""} onChange={(v) => setParam("bis", v)} />
+        </div>
+      )}
 
       <div className="rounded-lg border border-border bg-card">
         <Table>
@@ -140,7 +253,9 @@ export function EintraegeListPage() {
                 </TableCell>
                 <TableCell className="whitespace-nowrap">{eintrag.gewerk.name}</TableCell>
                 <TableCell className="whitespace-nowrap">{eintrag.technischerPlatz.name}</TableCell>
-                <TableCell className="max-w-md truncate">{eintrag.beschreibung}</TableCell>
+                <TableCell className="max-w-md truncate">
+                  <Highlighted text={eintrag.highlight} fallback={eintrag.beschreibung} />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -178,6 +293,49 @@ function FilterSelect({
           ))}
         </SelectContent>
       </Select>
+    </div>
+  );
+}
+
+function TextFilter({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <div className="w-40">
+      <label className="mb-1 block text-xs text-muted-foreground">{label}</label>
+      <Input
+        defaultValue={value}
+        placeholder={placeholder}
+        onBlur={(e) => e.target.value !== value && onChange(e.target.value.trim())}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") onChange((e.target as HTMLInputElement).value.trim());
+        }}
+      />
+    </div>
+  );
+}
+
+function DateFilter({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="w-40">
+      <label className="mb-1 block text-xs text-muted-foreground">{label}</label>
+      <Input type="date" value={value} onChange={(e) => onChange(e.target.value)} />
     </div>
   );
 }

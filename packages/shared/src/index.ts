@@ -7,3 +7,4 @@ export * from "./audit";
 export * from "./stammdaten";
 export * from "./eintraege";
 export * from "./anhaenge";
+export * from "./dashboard";

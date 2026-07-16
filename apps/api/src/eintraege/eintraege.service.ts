@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { Rolle, type AuthenticatedUser } from "@schichtbuch/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import {
@@ -38,22 +38,97 @@ export class EintraegeService {
   }
 
   async list(user: AuthenticatedUser, query: ListEintraegeQueryDto) {
+    const where = this.buildWhere(user, query);
+    const q = query.q?.trim();
+
+    // Ohne Suchbegriff: reine Filter-Query, chronologisch sortiert.
+    if (!q) {
+      const eintraege = await this.prisma.schichtbucheintrag.findMany({
+        where,
+        include: EINTRAG_LIST_INCLUDE,
+        orderBy: { zeitpunkt: "desc" },
+      });
+      return eintraege.map((eintrag) => toListItem(eintrag));
+    }
+
+    // Mit Suchbegriff (P5.1): Volltext-Treffer inkl. Rang + Highlight bestimmen,
+    // dann die Filter/Sichtbarkeit über die IDs erzwingen und nach Rang sortieren.
+    const treffer = await this.volltextTreffer(q);
+    if (treffer.ids.length === 0) {
+      return [];
+    }
+
+    const eintraege = await this.prisma.schichtbucheintrag.findMany({
+      where: { ...where, id: { in: treffer.ids } },
+      include: EINTRAG_LIST_INCLUDE,
+    });
+
+    return eintraege
+      .map((eintrag) => toListItem(eintrag))
+      .map((item) => ({ ...item, highlight: treffer.highlights.get(item.id) ?? null }))
+      .sort((a, b) => (treffer.ranks.get(b.id) ?? 0) - (treffer.ranks.get(a.id) ?? 0));
+  }
+
+  /** Baut den Prisma-Filter aus Query-Parametern inkl. Gewerk-Sichtbarkeit. */
+  private buildWhere(
+    user: AuthenticatedUser,
+    query: ListEintraegeQueryDto,
+  ): Prisma.SchichtbucheintragWhereInput {
     const where: Prisma.SchichtbucheintragWhereInput = {
       deletedAt: null,
       ...this.gewerkVisibilityWhere(user),
-      ...(query.status ? { status: query.status } : {}),
-      ...(query.prioritaet ? { prioritaet: query.prioritaet } : {}),
-      ...(query.gewerkId ? { gewerkId: query.gewerkId } : {}),
-      ...(query.fachbereichId ? { fachbereichId: query.fachbereichId } : {}),
-      ...(query.schichtId ? { schichtId: query.schichtId } : {}),
     };
+    if (query.status) where.status = query.status;
+    if (query.prioritaet) where.prioritaet = query.prioritaet;
+    if (query.gewerkId) where.gewerkId = query.gewerkId;
+    if (query.fachbereichId) where.fachbereichId = query.fachbereichId;
+    if (query.schichtId) where.schichtId = query.schichtId;
+    if (query.technischerPlatzId) where.technischerPlatzId = query.technischerPlatzId;
+    if (query.erstellerId) where.erstellerId = query.erstellerId;
+    if (query.sapIhAuftrag) {
+      where.sapIhAuftrag = { contains: query.sapIhAuftrag, mode: "insensitive" };
+    }
+    if (query.easyFlowTag) {
+      where.easyFlowTag = { contains: query.easyFlowTag, mode: "insensitive" };
+    }
+    if (query.von || query.bis) {
+      where.zeitpunkt = {
+        ...(query.von ? { gte: new Date(query.von) } : {}),
+        ...(query.bis ? { lte: bisGrenze(query.bis) } : {}),
+      };
+    }
+    return where;
+  }
 
-    const eintraege = await this.prisma.schichtbucheintrag.findMany({
-      where,
-      include: EINTRAG_LIST_INCLUDE,
-      orderBy: { zeitpunkt: "desc" },
-    });
-    return eintraege.map(toListItem);
+  /**
+   * Führt die Postgres-Volltextsuche aus und liefert Treffer-IDs, ihren Rang und
+   * den hervorgehobenen Auszug. `websearch_to_tsquery` verarbeitet die
+   * Nutzereingabe tolerant (Phrasen in Anführungszeichen, `-` für Ausschluss).
+   */
+  private async volltextTreffer(
+    q: string,
+  ): Promise<{ ids: string[]; ranks: Map<string, number>; highlights: Map<string, string> }> {
+    const rows = await this.prisma.$queryRaw<
+      Array<{ id: string; rank: number; highlight: string }>
+    >(Prisma.sql`
+      SELECT "id"::text AS id,
+             ts_rank("suchVektor", websearch_to_tsquery('german', ${q})) AS rank,
+             ts_headline(
+               'german', "beschreibung", websearch_to_tsquery('german', ${q}),
+               'StartSel=⟦, StopSel=⟧, MaxFragments=2, MaxWords=18, MinWords=5, ShortWord=2'
+             ) AS highlight
+      FROM "schichtbucheintraege"
+      WHERE "deletedAt" IS NULL
+        AND "suchVektor" @@ websearch_to_tsquery('german', ${q})
+    `);
+
+    const ranks = new Map<string, number>();
+    const highlights = new Map<string, string>();
+    for (const row of rows) {
+      ranks.set(row.id, Number(row.rank));
+      highlights.set(row.id, row.highlight);
+    }
+    return { ids: rows.map((row) => row.id), ranks, highlights };
   }
 
   async findOne(user: AuthenticatedUser, id: string) {
@@ -167,4 +242,15 @@ export class EintraegeService {
     }
     return data;
   }
+}
+
+/**
+ * Obergrenze für den Zeitraum-Filter. Ist nur ein Datum (YYYY-MM-DD) angegeben,
+ * wird das Ende dieses Tages verwendet, damit der Tag inklusiv ist.
+ */
+function bisGrenze(bis: string): Date {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(bis)) {
+    return new Date(`${bis}T23:59:59.999`);
+  }
+  return new Date(bis);
 }
