@@ -50,7 +50,8 @@ services:
       minio:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:${API_PORT}/${API_GLOBAL_PREFIX}/health"]
+      # 127.0.0.1 statt localhost erzwingt IPv4 (der Dienst lauscht nur auf IPv4).
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:${API_PORT}/${API_GLOBAL_PREFIX}/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -64,7 +65,9 @@ services:
         VITE_API_BASE_URL: /api
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
+      # 127.0.0.1 statt localhost: nginx lauscht nur auf IPv4; BusyBox-wget macht
+      # keinen IPv6->IPv4-Fallback und liefe sonst gegen ::1 ins Leere.
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/health"]
       interval: 10s
       timeout: 5s
       retries: 5
