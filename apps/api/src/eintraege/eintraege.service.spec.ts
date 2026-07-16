@@ -76,20 +76,30 @@ describe("EintraegeService – Volltextsuche (P5.1)", () => {
     const result = await service.list(makeUser(), { q: "treffer" });
 
     expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
-    expect(prisma.schichtbucheintrag.findMany.mock.calls[0][0].where.id).toEqual({
-      in: ["b", "a"],
-    });
+    // Volltext-IDs sind der erste OR-Zweig; verwandte Namensfelder folgen.
+    const where = prisma.schichtbucheintrag.findMany.mock.calls[0][0].where;
+    expect(where.OR[0].id).toEqual({ in: ["b", "a"] });
+    expect(where.OR.some((c: { technischerPlatz?: unknown }) => c.technischerPlatz)).toBe(true);
     expect(result.map((r) => r.id)).toEqual(["b", "a"]); // Rang-Reihenfolge
     expect(result[0].highlight).toBe("⟦Treffer⟧ B");
   });
 
-  it("mit Suchbegriff ohne Treffer: leere Liste ohne zweite Query", async () => {
+  it("sucht auch in verwandten Namensfeldern (z.B. Technischer Platz)", async () => {
     const prisma = makePrisma();
-    prisma.$queryRaw.mockResolvedValue([]);
+    prisma.$queryRaw.mockResolvedValue([]); // kein Volltext-Treffer
+    prisma.schichtbucheintrag.findMany.mockResolvedValue([makeEntity("x")]);
     const service = new EintraegeService(prisma as never, makeNotifications() as never);
-    const result = await service.list(makeUser(), { q: "nichts" });
-    expect(result).toEqual([]);
-    expect(prisma.schichtbucheintrag.findMany).not.toHaveBeenCalled();
+
+    const result = await service.list(makeUser(), { q: "Förderband" });
+
+    // Auch ohne Volltext-Treffer wird per OR über Namensfelder gesucht.
+    const where = prisma.schichtbucheintrag.findMany.mock.calls[0][0].where;
+    expect(
+      where.OR.some(
+        (c: { technischerPlatz?: { bezeichnung?: unknown } }) => c.technischerPlatz?.bezeichnung,
+      ),
+    ).toBe(true);
+    expect(result.map((r) => r.id)).toEqual(["x"]);
   });
 });
 

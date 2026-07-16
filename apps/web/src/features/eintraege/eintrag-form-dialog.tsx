@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -342,8 +343,6 @@ interface SelectFieldProps {
   allowEmpty?: boolean;
 }
 
-const EMPTY_VALUE = "__none__";
-
 function SelectField({ control, name, label, options, error, allowEmpty }: SelectFieldProps) {
   return (
     <Field label={label} error={error}>
@@ -351,22 +350,12 @@ function SelectField({ control, name, label, options, error, allowEmpty }: Selec
         control={control}
         name={name}
         render={({ field }) => (
-          <Select
-            value={field.value || (allowEmpty ? EMPTY_VALUE : undefined)}
-            onValueChange={(value) => field.onChange(value === EMPTY_VALUE ? "" : value)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Bitte wählen…" />
-            </SelectTrigger>
-            <SelectContent>
-              {allowEmpty && <SelectItem value={EMPTY_VALUE}>— keiner —</SelectItem>}
-              {options.map((option) => (
-                <SelectItem key={option.id} value={option.id}>
-                  {option.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Combobox
+            value={field.value ?? ""}
+            onChange={field.onChange}
+            options={options.map((o) => ({ value: o.id, label: o.name }))}
+            emptyOption={allowEmpty ? "— keiner —" : undefined}
+          />
         )}
       />
     </Field>

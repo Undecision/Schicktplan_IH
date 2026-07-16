@@ -56,22 +56,39 @@ export class EintraegeService {
       return eintraege.map((eintrag) => toListItem(eintrag));
     }
 
-    // Mit Suchbegriff (P5.1): Volltext-Treffer inkl. Rang + Highlight bestimmen,
-    // dann die Filter/Sichtbarkeit über die IDs erzwingen und nach Rang sortieren.
+    // Mit Suchbegriff (P5.1): Volltext-Treffer (Beschreibung/SAP/TAG, inkl. Rang
+    // + Highlight) UND Teiltreffer in verwandten Namensfeldern (Technischer
+    // Platz, Gewerk, Fachbereich, Ersteller, Schicht), damit die Suchzeile auch
+    // diese findet. Beides wird per OR kombiniert; Filter/Sichtbarkeit bleiben.
     const treffer = await this.volltextTreffer(q);
-    if (treffer.ids.length === 0) {
-      return [];
-    }
+    const contains = { contains: q, mode: "insensitive" as const };
+    const relatedOr: Prisma.SchichtbucheintragWhereInput[] = [
+      { technischerPlatz: { bezeichnung: contains } },
+      { technischerPlatz: { code: contains } },
+      { gewerk: { name: contains } },
+      { fachbereich: { name: contains } },
+      { ersteller: { name: contains } },
+      { schicht: { name: contains } },
+      { sapIhAuftrag: contains },
+      { easyFlowTag: contains },
+    ];
+    const orConditions =
+      treffer.ids.length > 0 ? [{ id: { in: treffer.ids } }, ...relatedOr] : relatedOr;
 
     const eintraege = await this.prisma.schichtbucheintrag.findMany({
-      where: { ...where, id: { in: treffer.ids } },
+      where: { ...where, OR: orConditions },
       include: EINTRAG_LIST_INCLUDE,
     });
 
     return eintraege
       .map((eintrag) => toListItem(eintrag))
       .map((item) => ({ ...item, highlight: treffer.highlights.get(item.id) ?? null }))
-      .sort((a, b) => (treffer.ranks.get(b.id) ?? 0) - (treffer.ranks.get(a.id) ?? 0));
+      .sort((a, b) => {
+        // Volltext-Treffer nach Rang zuerst, danach chronologisch.
+        const rankDiff = (treffer.ranks.get(b.id) ?? 0) - (treffer.ranks.get(a.id) ?? 0);
+        if (rankDiff !== 0) return rankDiff;
+        return new Date(b.zeitpunkt).getTime() - new Date(a.zeitpunkt).getTime();
+      });
   }
 
   /** Baut den Prisma-Filter aus Query-Parametern inkl. Gewerk-Sichtbarkeit. */

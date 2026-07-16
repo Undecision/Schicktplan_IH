@@ -10,13 +10,7 @@ import {
 } from "@schichtbuch/shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import {
   Table,
   TableBody,
@@ -30,8 +24,6 @@ import { useEintraege, useFormOptions } from "./queries";
 import { PrioritaetBadge, StatusBadge } from "./badges";
 import { EintragFormDialog } from "./eintrag-form-dialog";
 import { Highlighted } from "./highlight";
-
-const ALL = "__all__";
 
 // Filter-Schlüssel, die als Query-Parameter in der URL persistiert werden
 // (teilbare Ansichten, P5.2). Nicht persistiert: `erfassen` (UI-Trigger).
@@ -280,19 +272,13 @@ function FilterSelect({
 }) {
   return (
     <div className="w-48">
-      <Select value={value || ALL} onValueChange={(v) => onChange(v === ALL ? "" : v)}>
-        <SelectTrigger>
-          <SelectValue placeholder={label} />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={ALL}>{label}: Alle</SelectItem>
-          {options.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <Combobox
+        value={value}
+        onChange={onChange}
+        options={options}
+        placeholder={`${label}: Alle`}
+        emptyOption={`${label}: Alle`}
+      />
     </div>
   );
 }
