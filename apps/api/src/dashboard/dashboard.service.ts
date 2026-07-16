@@ -19,7 +19,8 @@ export class DashboardService {
     const startHeute = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     const [
-      offeneEintraege,
+      offen,
+      inBearbeitung,
       kritischeOffen,
       heuteErfasst,
       sapGroups,
@@ -29,7 +30,10 @@ export class DashboardService {
       letzteAnlagenRoh,
     ] = await Promise.all([
       this.prisma.schichtbucheintrag.count({
-        where: { ...base, status: { in: [EintragStatus.OFFEN, EintragStatus.IN_BEARBEITUNG] } },
+        where: { ...base, status: EintragStatus.OFFEN },
+      }),
+      this.prisma.schichtbucheintrag.count({
+        where: { ...base, status: EintragStatus.IN_BEARBEITUNG },
       }),
       this.prisma.schichtbucheintrag.count({
         where: {
@@ -73,10 +77,12 @@ export class DashboardService {
     ]);
 
     return {
-      offeneEintraege,
+      offen,
+      inBearbeitung,
       kritischeOffen,
       heuteErfasst,
-      offeneSapAuftraege: sapGroups.length,
+      // Nur echte, nicht-leere SAP-Auftragsnummern zählen (robust gegen leere Strings).
+      offeneSapAuftraege: sapGroups.filter((g) => (g.sapIhAuftrag ?? "").trim() !== "").length,
       statusVerteilung: statusGroups.map((g) => ({
         status: g.status as EintragStatus,
         anzahl: g._count._all,

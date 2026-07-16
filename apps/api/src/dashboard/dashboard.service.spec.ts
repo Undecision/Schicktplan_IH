@@ -18,12 +18,18 @@ function makePrisma() {
     schichtbucheintrag: {
       count: jest
         .fn()
-        .mockResolvedValueOnce(4) // offeneEintraege
+        .mockResolvedValueOnce(3) // offen
+        .mockResolvedValueOnce(1) // inBearbeitung
         .mockResolvedValueOnce(2) // kritischeOffen
         .mockResolvedValueOnce(6), // heuteErfasst
       groupBy: jest
         .fn()
-        .mockResolvedValueOnce([{ sapIhAuftrag: "700111" }, { sapIhAuftrag: "700222" }]) // sap
+        // enthält einen leeren Wert, der NICHT gezählt werden darf:
+        .mockResolvedValueOnce([
+          { sapIhAuftrag: "700111" },
+          { sapIhAuftrag: "700222" },
+          { sapIhAuftrag: "" },
+        ]) // sap
         .mockResolvedValueOnce([{ status: "OFFEN", _count: { _all: 4 } }]) // status
         .mockResolvedValueOnce([{ prioritaet: "KRITISCH", _count: { _all: 2 } }]), // prioritaet
       findMany: jest
@@ -45,9 +51,11 @@ describe("DashboardService", () => {
 
     const data = await service.getData(makeUser());
 
-    expect(data.offeneEintraege).toBe(4);
+    expect(data.offen).toBe(3);
+    expect(data.inBearbeitung).toBe(1);
     expect(data.kritischeOffen).toBe(2);
     expect(data.heuteErfasst).toBe(6);
+    // Leerer SAP-Wert wird ignoriert → 2 statt 3.
     expect(data.offeneSapAuftraege).toBe(2);
     expect(data.statusVerteilung).toEqual([{ status: EintragStatus.OFFEN, anzahl: 4 }]);
     expect(data.prioritaetVerteilung).toEqual([{ prioritaet: Prioritaet.KRITISCH, anzahl: 2 }]);

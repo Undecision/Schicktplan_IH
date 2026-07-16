@@ -1,13 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import {
-  AlertTriangle,
-  ArrowRight,
-  CalendarClock,
-  ClipboardList,
-  FileStack,
-  Wrench,
-} from "lucide-react";
+import { AlertTriangle, ArrowRight, ClipboardList, FileStack, Hammer, Wrench } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
   EINTRAG_STATUS,
@@ -19,8 +12,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PrioritaetBadge, StatusBadge } from "@/features/eintraege/badges";
 import { useDashboard } from "@/features/dashboard/queries";
-
-const HEUTE = new Date().toISOString().slice(0, 10);
 
 function formatDateTime(iso: string) {
   const d = new Date(iso);
@@ -43,9 +34,16 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatTile
           icon={ClipboardList}
-          label="Offene Einträge"
-          value={data.offeneEintraege}
+          label="Offen"
+          value={data.offen}
           to="/schichtbuch?status=OFFEN"
+          tone="default"
+        />
+        <StatTile
+          icon={Hammer}
+          label="In Bearbeitung"
+          value={data.inBearbeitung}
+          to="/schichtbuch?status=IN_BEARBEITUNG"
           tone="default"
         />
         <StatTile
@@ -54,13 +52,6 @@ export function DashboardPage() {
           value={data.kritischeOffen}
           to="/schichtbuch?prioritaet=KRITISCH"
           tone="critical"
-        />
-        <StatTile
-          icon={CalendarClock}
-          label="Heute erfasst"
-          value={data.heuteErfasst}
-          to={`/schichtbuch?von=${HEUTE}`}
-          tone="default"
         />
         <StatTile
           icon={FileStack}

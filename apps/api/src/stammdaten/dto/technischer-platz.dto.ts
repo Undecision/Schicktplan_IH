@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsBoolean, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsUUID, ValidateIf } from "class-validator";
 
 export class CreateTechnischerPlatzDto {
   @ApiProperty()
@@ -15,6 +15,12 @@ export class CreateTechnischerPlatzDto {
   @ApiProperty({ description: "Kann mit SAP PM synchronisiert werden (Vorbereitung Phase 12)." })
   @IsBoolean()
   sapSyncFaehig!: boolean;
+
+  @ApiPropertyOptional({ description: "Optionaler Fachbereich für die Vorbelegung im Formular." })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsUUID("4")
+  fachbereichId?: string | null;
 }
 
 export class UpdateTechnischerPlatzDto {
@@ -39,4 +45,10 @@ export class UpdateTechnischerPlatzDto {
   @IsOptional()
   @IsBoolean()
   aktiv?: boolean;
+
+  @ApiPropertyOptional({ description: "Fachbereich (null zum Entfernen)." })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsUUID("4")
+  fachbereichId?: string | null;
 }

@@ -88,7 +88,6 @@ export function EintragDetailPage() {
           <Detail label="Fachbereich" value={eintrag.fachbereich.name} />
           <Detail label="Technischer Platz" value={eintrag.technischerPlatz.name} />
           <Detail label="Ersteller" value={eintrag.ersteller.name} />
-          <Detail label="Verantwortlicher" value={eintrag.verantwortlicher?.name ?? "—"} />
           <Detail
             label="Fälligkeit"
             value={eintrag.faelligkeitsdatum ? formatDateTime(eintrag.faelligkeitsdatum) : "—"}

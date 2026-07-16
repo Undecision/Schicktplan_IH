@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -10,9 +11,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Combobox } from "@/components/ui/combobox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import type { StammdatenResource } from "./config";
+import { apiClient } from "@/lib/api-client";
+import type { StammdatenField, StammdatenResource } from "./config";
 import { useCreateStammdatum, useUpdateStammdatum, type StammdatumRow } from "./queries";
+
+function ReferenceField({
+  field,
+  value,
+  onChange,
+}: {
+  field: StammdatenField;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const { data: options = [] } = useQuery({
+    queryKey: ["stammdaten-ref", field.refEndpoint],
+    queryFn: async () => {
+      const { data } = await apiClient.get<Array<{ id: string } & Record<string, string>>>(
+        `/${field.refEndpoint}`,
+      );
+      const labelKey = field.refLabelField ?? "name";
+      return data.map((item) => ({ value: item.id, label: item[labelKey] ?? "" }));
+    },
+    enabled: !!field.refEndpoint,
+  });
+  return <Combobox value={value} onChange={onChange} options={options} emptyOption="— keiner —" />;
+}
 
 interface FormDialogProps {
   resource: StammdatenResource;
@@ -57,7 +83,7 @@ export function StammdatumFormDialog({ resource, open, onOpenChange, row }: Form
   function validate(): boolean {
     const nextErrors: FieldErrors = {};
     for (const field of resource.fields) {
-      if (field.type === "boolean") continue;
+      if (field.type === "boolean" || field.type === "reference") continue;
       const value = String(values[field.key] ?? "").trim();
       if (!value) {
         nextErrors[field.key] = `${field.label} ist erforderlich`;
@@ -76,8 +102,13 @@ export function StammdatumFormDialog({ resource, open, onOpenChange, row }: Form
 
     const payload: Record<string, unknown> = {};
     for (const field of resource.fields) {
-      payload[field.key] =
-        field.type === "boolean" ? Boolean(values[field.key]) : String(values[field.key]).trim();
+      if (field.type === "boolean") {
+        payload[field.key] = Boolean(values[field.key]);
+      } else if (field.type === "reference") {
+        payload[field.key] = String(values[field.key] ?? "").trim() || null;
+      } else {
+        payload[field.key] = String(values[field.key]).trim();
+      }
     }
 
     try {
@@ -126,6 +157,18 @@ export function StammdatumFormDialog({ resource, open, onOpenChange, row }: Form
                     onCheckedChange={(checked) =>
                       setValues((prev) => ({ ...prev, [field.key]: checked }))
                     }
+                  />
+                </div>
+              );
+            }
+            if (field.type === "reference") {
+              return (
+                <div key={field.key} className="space-y-1.5">
+                  <Label>{field.label}</Label>
+                  <ReferenceField
+                    field={field}
+                    value={String(values[field.key] ?? "")}
+                    onChange={(v) => setValues((prev) => ({ ...prev, [field.key]: v }))}
                   />
                 </div>
               );

@@ -22,13 +22,15 @@ export interface AnlageKurz {
 }
 
 export interface DashboardData {
-  /** Einträge mit Status OFFEN oder IN_BEARBEITUNG. */
-  offeneEintraege: number;
+  /** Einträge mit Status OFFEN. */
+  offen: number;
+  /** Einträge mit Status IN_BEARBEITUNG. */
+  inBearbeitung: number;
   /** Nicht erledigte Einträge mit Priorität KRITISCH. */
   kritischeOffen: number;
   /** Heute (ab 00:00 Uhr) erfasste Einträge. */
   heuteErfasst: number;
-  /** Anzahl distinct offener SAP-IH-Aufträge (Status ≠ ERLEDIGT). */
+  /** Anzahl distinct SAP-IH-Aufträge (nicht leer) mit Status ≠ ERLEDIGT. */
   offeneSapAuftraege: number;
   statusVerteilung: StatusVerteilung[];
   prioritaetVerteilung: PrioritaetVerteilung[];

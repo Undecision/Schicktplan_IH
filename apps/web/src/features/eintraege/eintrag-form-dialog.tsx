@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { useEffect, useMemo } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -34,12 +34,33 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/features/auth/auth-context";
 import { useCreateEintrag, useFormOptions, useUpdateEintrag } from "./queries";
 
-const optionalRef = z
-  .string()
-  .optional()
-  .transform((value) => (value === "" ? undefined : value));
+/** Ermittelt die aktuell laufende Schicht anhand der Uhrzeit (mit Mitternachts-Überlauf). */
+function aktuelleSchichtId(
+  schichten: { id: string; startzeit: string; endzeit: string }[],
+): string {
+  const now = new Date();
+  const cur = now.getHours() * 60 + now.getMinutes();
+  const toMin = (t: string) => {
+    const [h = "0", m = "0"] = t.split(":");
+    return Number(h) * 60 + Number(m);
+  };
+  for (const s of schichten) {
+    const start = toMin(s.startzeit);
+    const end = toMin(s.endzeit);
+    const drin = start <= end ? cur >= start && cur < end : cur >= start || cur < end;
+    if (drin) return s.id;
+  }
+  return "";
+}
+
+/** Gewerk des Nutzers: bei genau einem sichtbaren Gewerk dieses vorbelegen. */
+function eigenesGewerkId(gewerke: { id: string; name: string }[], sichtbar: string[]): string {
+  if (sichtbar.length === 1) return gewerke.find((g) => g.name === sichtbar[0])?.id ?? "";
+  return "";
+}
 
 const formSchema = z.object({
   datum: z.string().min(1, "Datum ist erforderlich"),
@@ -62,7 +83,6 @@ const formSchema = z.object({
     .string()
     .optional()
     .refine((v) => !v || EASYFLOW_TAG_REGEX.test(v), "EasyFlow-TAG-Format, z.B. PW4-M-1023."),
-  verantwortlicherId: optionalRef,
   faelligkeitsdatum: z.string().optional(),
   bearbeitungBeginn: z.string().optional(),
   bearbeitungEnde: z.string().optional(),
@@ -78,10 +98,14 @@ interface EintragFormDialogProps {
 }
 
 function toDefaults(eintrag?: SchichtbucheintragDetail): FormValues {
+  const pad = (n: number) => String(n).padStart(2, "0");
   if (!eintrag) {
+    // Neuer Eintrag: Datum + Uhrzeit automatisch auf „jetzt" (Schicht/Gewerk
+    // werden nach dem Laden der Optionen ergänzt).
+    const now = new Date();
     return {
-      datum: "",
-      uhrzeit: "",
+      datum: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+      uhrzeit: `${pad(now.getHours())}:${pad(now.getMinutes())}`,
       schichtId: "",
       gewerkId: "",
       fachbereichId: "",
@@ -91,7 +115,6 @@ function toDefaults(eintrag?: SchichtbucheintragDetail): FormValues {
       beschreibung: "",
       sapIhAuftrag: "",
       easyFlowTag: "",
-      verantwortlicherId: "",
       faelligkeitsdatum: "",
       bearbeitungBeginn: "",
       bearbeitungEnde: "",
@@ -99,7 +122,6 @@ function toDefaults(eintrag?: SchichtbucheintragDetail): FormValues {
     };
   }
   const dt = new Date(eintrag.zeitpunkt);
-  const pad = (n: number) => String(n).padStart(2, "0");
   return {
     datum: `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`,
     uhrzeit: `${pad(dt.getHours())}:${pad(dt.getMinutes())}`,
@@ -112,7 +134,6 @@ function toDefaults(eintrag?: SchichtbucheintragDetail): FormValues {
     beschreibung: eintrag.beschreibung,
     sapIhAuftrag: eintrag.sapIhAuftrag ?? "",
     easyFlowTag: eintrag.easyFlowTag ?? "",
-    verantwortlicherId: eintrag.verantwortlicher?.id ?? "",
     faelligkeitsdatum: eintrag.faelligkeitsdatum ? eintrag.faelligkeitsdatum.slice(0, 10) : "",
     bearbeitungBeginn: toLocalInput(eintrag.bearbeitungBeginn),
     bearbeitungEnde: toLocalInput(eintrag.bearbeitungEnde),
@@ -131,6 +152,7 @@ function toLocalInput(iso: string | null): string {
 export function EintragFormDialog({ open, onOpenChange, eintrag }: EintragFormDialogProps) {
   const isEdit = !!eintrag;
   const { data: options } = useFormOptions();
+  const { user } = useAuth();
   const createMutation = useCreateEintrag();
   const updateMutation = useUpdateEintrag();
 
@@ -140,12 +162,58 @@ export function EintragFormDialog({ open, onOpenChange, eintrag }: EintragFormDi
     control,
     reset,
     setError,
+    setValue,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(formSchema), defaultValues: toDefaults() });
 
   useEffect(() => {
     if (open) reset(toDefaults(eintrag));
   }, [open, eintrag, reset]);
+
+  // Beim Neuanlegen Schicht (nach Uhrzeit) und Gewerk (nach Nutzer) vorbelegen,
+  // sobald die Optionen geladen sind – ohne bereits getroffene Auswahl zu überschreiben.
+  useEffect(() => {
+    if (!open || isEdit || !options || !user) return;
+    if (!getValues("schichtId")) {
+      const sid = aktuelleSchichtId(options.schichten);
+      if (sid) setValue("schichtId", sid);
+    }
+    if (!getValues("gewerkId")) {
+      const gid = eigenesGewerkId(options.gewerke, user.gewerkeSichtbarkeit);
+      if (gid) setValue("gewerkId", gid);
+    }
+  }, [open, isEdit, options, user, getValues, setValue]);
+
+  // Gewerk-Auswahl auf die für den Nutzer sichtbaren Gewerke beschränken.
+  const gewerkOptions = useMemo(() => {
+    const alle = options?.gewerke ?? [];
+    if (user && user.gewerkeSichtbarkeit.length > 0) {
+      return alle.filter((g) => user.gewerkeSichtbarkeit.includes(g.name));
+    }
+    return alle;
+  }, [options, user]);
+
+  // Technische Plätze anhand des gewählten Fachbereichs vorfiltern (Plätze ohne
+  // Fachbereich-Zuordnung gelten überall). Fällt auf „alle" zurück, solange keine
+  // Zuordnung passt (z.B. bevor Fachbereiche gepflegt sind).
+  const fachbereichId = useWatch({ control, name: "fachbereichId" });
+  const technischePlaetzeGefiltert = useMemo(() => {
+    const alle = options?.technischePlaetze ?? [];
+    if (!fachbereichId) return alle;
+    const passend = alle.filter(
+      (t) => t.fachbereichId === fachbereichId || t.fachbereichId === null,
+    );
+    return passend.length > 0 ? passend : alle;
+  }, [options, fachbereichId]);
+
+  // Gewählten Platz zurücksetzen, wenn er nicht mehr zum Fachbereich passt.
+  useEffect(() => {
+    const cur = getValues("technischerPlatzId");
+    if (cur && !technischePlaetzeGefiltert.some((t) => t.id === cur)) {
+      setValue("technischerPlatzId", "");
+    }
+  }, [technischePlaetzeGefiltert, getValues, setValue]);
 
   async function onSubmit(values: FormValues) {
     const zeitpunkt = new Date(`${values.datum}T${values.uhrzeit}:00`).toISOString();
@@ -160,7 +228,6 @@ export function EintragFormDialog({ open, onOpenChange, eintrag }: EintragFormDi
       beschreibung: values.beschreibung,
       sapIhAuftrag: values.sapIhAuftrag || null,
       easyFlowTag: values.easyFlowTag || null,
-      verantwortlicherId: values.verantwortlicherId || null,
       faelligkeitsdatum: values.faelligkeitsdatum
         ? new Date(`${values.faelligkeitsdatum}T00:00:00`).toISOString()
         : null,
@@ -223,7 +290,7 @@ export function EintragFormDialog({ open, onOpenChange, eintrag }: EintragFormDi
               control={control}
               name="gewerkId"
               label="Gewerk"
-              options={options?.gewerke ?? []}
+              options={gewerkOptions}
               error={errors.gewerkId?.message}
             />
             <SelectField
@@ -237,7 +304,7 @@ export function EintragFormDialog({ open, onOpenChange, eintrag }: EintragFormDi
               control={control}
               name="technischerPlatzId"
               label="Technischer Platz"
-              options={options?.technischePlaetze ?? []}
+              options={technischePlaetzeGefiltert}
               error={errors.technischerPlatzId?.message}
             />
           </div>
@@ -273,14 +340,6 @@ export function EintragFormDialog({ open, onOpenChange, eintrag }: EintragFormDi
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <SelectField
-              control={control}
-              name="verantwortlicherId"
-              label="Verantwortlicher (optional)"
-              options={options?.benutzer ?? []}
-              error={undefined}
-              allowEmpty
-            />
             <Field label="Fälligkeit (optional)" error={undefined}>
               <Input type="date" {...register("faelligkeitsdatum")} />
             </Field>
@@ -365,7 +424,7 @@ function Field({
 
 interface SelectFieldProps {
   control: import("react-hook-form").Control<FormValues>;
-  name: "schichtId" | "gewerkId" | "fachbereichId" | "technischerPlatzId" | "verantwortlicherId";
+  name: "schichtId" | "gewerkId" | "fachbereichId" | "technischerPlatzId";
   label: string;
   options: { id: string; name: string }[];
   error?: string;

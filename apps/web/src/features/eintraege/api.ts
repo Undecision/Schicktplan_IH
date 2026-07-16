@@ -69,24 +69,50 @@ async function fetchRefList(
   return data.map((item) => ({ id: item.id, name: item[labelKey] ?? "" }));
 }
 
+/** Technischer Platz inkl. optionaler Fachbereich-Zuordnung (für Vorbelegung). */
+export interface TechPlatzOption extends Referenz {
+  fachbereichId: string | null;
+}
+
+/** Schicht inkl. Zeiten (für die automatische Schichtermittlung). */
+export interface SchichtOption extends Referenz {
+  startzeit: string;
+  endzeit: string;
+}
+
 export interface EintragFormOptions {
   gewerke: Referenz[];
   fachbereiche: Referenz[];
-  technischePlaetze: Referenz[];
-  schichten: Referenz[];
+  technischePlaetze: TechPlatzOption[];
+  schichten: SchichtOption[];
   schlagwoerter: Referenz[];
   benutzer: Referenz[];
 }
 
 export async function fetchFormOptions(): Promise<EintragFormOptions> {
-  const [gewerke, fachbereiche, technischePlaetze, schichten, schlagwoerter, benutzer] =
+  const [gewerke, fachbereiche, technischePlaetzeRaw, schichtenRaw, schlagwoerter, benutzer] =
     await Promise.all([
       fetchRefList("gewerke", "name"),
       fetchRefList("fachbereiche", "name"),
-      fetchRefList("technische-plaetze", "bezeichnung"),
-      fetchRefList("schicht-definitionen", "name"),
+      apiClient.get<{ id: string; bezeichnung: string; fachbereichId: string | null }[]>(
+        "/technische-plaetze",
+      ),
+      apiClient.get<{ id: string; name: string; startzeit: string; endzeit: string }[]>(
+        "/schicht-definitionen",
+      ),
       fetchRefList("schlagwoerter", "name"),
       fetchRefList("users/auswahl", "name"),
     ]);
+  const technischePlaetze: TechPlatzOption[] = technischePlaetzeRaw.data.map((t) => ({
+    id: t.id,
+    name: t.bezeichnung,
+    fachbereichId: t.fachbereichId,
+  }));
+  const schichten: SchichtOption[] = schichtenRaw.data.map((s) => ({
+    id: s.id,
+    name: s.name,
+    startzeit: s.startzeit,
+    endzeit: s.endzeit,
+  }));
   return { gewerke, fachbereiche, technischePlaetze, schichten, schlagwoerter, benutzer };
 }

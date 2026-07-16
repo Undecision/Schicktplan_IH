@@ -1,6 +1,6 @@
 import { ZEIT_REGEX } from "@schichtbuch/shared";
 
-export type FieldType = "text" | "time" | "boolean";
+export type FieldType = "text" | "time" | "boolean" | "reference";
 
 export interface StammdatenField {
   key: string;
@@ -11,6 +11,9 @@ export interface StammdatenField {
   patternMessage?: string;
   /** Im Formular editierbar (Standard: true). aktiv wird separat behandelt. */
   editable?: boolean;
+  /** Für type "reference": Ziel-Endpunkt und Label-Feld der Optionen. */
+  refEndpoint?: string;
+  refLabelField?: "name" | "bezeichnung";
 }
 
 export interface StammdatenResource {
@@ -46,6 +49,13 @@ export const STAMMDATEN_RESOURCES: Record<string, StammdatenResource> = {
     fields: [
       { key: "bezeichnung", label: "Bezeichnung", type: "text" },
       { key: "code", label: "Code", type: "text" },
+      {
+        key: "fachbereichId",
+        label: "Fachbereich (optional)",
+        type: "reference",
+        refEndpoint: "fachbereiche",
+        refLabelField: "name",
+      },
       { key: "sapSyncFaehig", label: "SAP-synchronisierbar", type: "boolean" },
     ],
   },

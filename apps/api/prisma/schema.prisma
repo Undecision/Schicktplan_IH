@@ -144,7 +144,8 @@ model Fachbereich {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  eintraege Schichtbucheintrag[]
+  eintraege        Schichtbucheintrag[]
+  technischePlaetze TechnischerPlatz[]
 
   @@map("fachbereiche")
 }
@@ -158,12 +159,17 @@ model TechnischerPlatz {
   code          String    @unique
   sapSyncFaehig Boolean   @default(false)
   aktiv         Boolean   @default(true)
+  /// Optionale Zuordnung zu einem Fachbereich – dient der Vorbelegung im
+  /// Eintragsformular (Fachbereich wählen → passende Plätze).
+  fachbereichId String?   @db.Uuid
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
 
-  eintraege Schichtbucheintrag[]
+  fachbereich Fachbereich? @relation(fields: [fachbereichId], references: [id])
+  eintraege   Schichtbucheintrag[]
 
+  @@index([fachbereichId])
   @@map("technische_plaetze")
 }
 
