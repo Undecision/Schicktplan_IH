@@ -58,7 +58,9 @@ docker run --rm hello-world   # Funktionstest
 
 - LXC mit **nesting=1**, ~4 vCPU / 8 GB RAM, ≥ 40 GB Disk.
 - Docker Engine + Compose-Plugin installiert (Schritt 1c).
-- Ports **80/443** des LXC erreichbar (für Caddy/HTTPS).
+- Netzwerk-Erreichbarkeit je nach Betriebsart (siehe Abschnitt 4):
+  Standard/Caddy-TLS → Ports **80/443**; hinter Cloudflare Tunnel → nur der
+  interne `HTTP_PORT` (Standard 8080), keine öffentlichen Ports nötig.
 - Ausreichend Disk für die Named Volumes `postgres-data` / `minio-data`.
 
 ## 2. Konfiguration
@@ -119,15 +121,61 @@ Passwort anlegen, dann `SEED_ON_STARTUP` auf `false` setzen und die
 überschreibt ein bereits existierendes Admin-Passwort NICHT – ein
 Container-Neustart ist also unkritisch.
 
-## 4. Reverse-Proxy-Domain
+## 4. Zugriff / Reverse Proxy
 
-Caddy routet:
+Es gibt zwei Betriebsarten – wähle **eine**.
+
+### 4a. Standard: Caddy terminiert TLS (Direktzugriff)
+
+Passend, wenn das LXC direkt (per Port-Forwarding 80/443) erreichbar ist. Caddy
+routet und stellt HTTPS bereit:
 
 - `https://<CADDY_DOMAIN>/api/*` → `api`-Container
 - `https://<CADDY_DOMAIN>/*` → `web`-Container (statisches Frontend)
 
-Ports 80/443 des LXC müssen auf den Caddy-Container gemappt sein (bereits in
-`docker-compose.yml` konfiguriert).
+Ports 80/443 des LXC müssen erreichbar sein (bereits in `docker-compose.yml`
+gemappt). Start wie in Abschnitt 3.
+
+### 4b. Hinter externem Cloudflare Tunnel (oder anderem Reverse Proxy)
+
+Passend, wenn bereits ein `cloudflared` läuft (auf dem Proxmox-Host oder in
+einem separaten LXC). Dann terminiert **Cloudflare** das öffentliche HTTPS am
+Edge; das LXC braucht **keine offenen Ports 80/443**. Caddy arbeitet nur noch
+als interner HTTP-Router.
+
+Start mit dem zusätzlichen Override:
+
+```bash
+docker compose --env-file .env \
+  -f infra/docker-compose.yml \
+  -f infra/docker-compose.cloudflare.yml up -d --build
+```
+
+Das veröffentlicht nur einen einzelnen HTTP-Port am LXC (`HTTP_PORT`, Standard
+`8080`) und mountet `infra/Caddyfile.http` (kein TLS). `CADDY_DOMAIN`/`CADDY_EMAIL`
+werden dabei nicht benötigt.
+
+Deinen **bestehenden** Tunnel auf diesen Endpoint zeigen lassen – in der
+`cloudflared`-Ingress-Konfiguration (`config.yml`):
+
+```yaml
+ingress:
+  - hostname: schichtbuch.example.com
+    service: http://<LXC-IP>:8080
+  - service: http_status:404
+```
+
+bzw. im Cloudflare Zero-Trust-Dashboard (Public Hostname → Service:
+`HTTP` → `<LXC-IP>:8080`). Danach `cloudflared` neu laden.
+
+Weitere `.env`-Hinweise für diesen Modus:
+
+- `CORS_ORIGIN` und `VITE_API_BASE_URL`: Da Web und API über denselben
+  Ursprung (`/api`-Pfad-Routing) laufen, ist CORS für die SPA nicht relevant –
+  `VITE_API_BASE_URL=/api` bleibt. `CORS_ORIGIN` auf die öffentliche
+  Cloudflare-Domain setzen.
+- Die App setzt das Refresh-Token-Cookie als `secure` – das funktioniert, weil
+  der Browser die Verbindung über Cloudflare als HTTPS sieht.
 
 ## 5. Datenverschlüsselung (DSGVO-Vorbereitung)
 

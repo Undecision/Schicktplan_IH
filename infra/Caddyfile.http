@@ -1,0 +1,23 @@
+# Caddy als reiner interner HTTP-Router (kein TLS) – für den Betrieb hinter
+# einem externen Reverse Proxy / Cloudflare Tunnel. Das öffentliche HTTPS
+# terminiert dort; hier wird nur /api -> api und / -> web geroutet.
+#
+# Genutzt über das Compose-Override infra/docker-compose.cloudflare.yml.
+
+:80 {
+	encode gzip zstd
+
+	@api path /api/*
+	handle @api {
+		reverse_proxy api:{$API_PORT}
+	}
+
+	handle {
+		reverse_proxy web:80
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}
