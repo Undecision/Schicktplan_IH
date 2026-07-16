@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { Prioritaet, Rolle, type AuthenticatedUser } from "@schichtbuch/shared";
+import { BadRequestException } from "@nestjs/common";
+import { EintragStatus, Prioritaet, Rolle, type AuthenticatedUser } from "@schichtbuch/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import {
@@ -186,6 +187,14 @@ export class EintraegeService {
         : undefined,
     };
 
+    const bearbeitung = this.berechneBearbeitung({
+      status: dto.status,
+      beginnRoh: dto.bearbeitungBeginn,
+      endeRoh: dto.bearbeitungEnde,
+    });
+    data.bearbeitungBeginn = bearbeitung.beginn;
+    data.bearbeitungEnde = bearbeitung.ende;
+
     const eintrag = await this.prisma.schichtbucheintrag.create({
       data,
       include: EINTRAG_DETAIL_INCLUDE,
@@ -207,7 +216,14 @@ export class EintraegeService {
   async update(user: AuthenticatedUser, id: string, dto: UpdateEintragDto) {
     const existing = await this.prisma.schichtbucheintrag.findFirst({
       where: { id, deletedAt: null },
-      select: { id: true, erstellerId: true, gewerk: { select: { name: true } } },
+      select: {
+        id: true,
+        erstellerId: true,
+        status: true,
+        bearbeitungBeginn: true,
+        bearbeitungEnde: true,
+        gewerk: { select: { name: true } },
+      },
     });
     if (!existing || !this.isVisible(user, existing.gewerk.name)) {
       throw new NotFoundException("Eintrag nicht gefunden.");
@@ -229,12 +245,63 @@ export class EintraegeService {
       data.schlagwoerter = { set: dto.schlagwortIds.map((sid) => ({ id: sid })) };
     }
 
+    const bearbeitung = this.berechneBearbeitung({
+      status: dto.status ?? (existing.status as EintragStatus),
+      vorherStatus: existing.status as EintragStatus,
+      beginnRoh: dto.bearbeitungBeginn,
+      endeRoh: dto.bearbeitungEnde,
+      vorherBeginn: existing.bearbeitungBeginn,
+      vorherEnde: existing.bearbeitungEnde,
+    });
+    data.bearbeitungBeginn = bearbeitung.beginn;
+    data.bearbeitungEnde = bearbeitung.ende;
+
     const eintrag = await this.prisma.schichtbucheintrag.update({
       where: { id },
       data,
       include: EINTRAG_DETAIL_INCLUDE,
     });
     return toDetail(eintrag);
+  }
+
+  /**
+   * Bestimmt Bearbeitungsbeginn/-ende aus DTO-Eingaben und Status-Übergängen:
+   * Beim Eintritt in IN_BEARBEITUNG wird der Beginn, beim Eintritt in ERLEDIGT
+   * das Ende automatisch auf „jetzt" gesetzt – aber nur, wenn das jeweilige Feld
+   * (nach Anwendung expliziter DTO-Werte) noch leer ist. Explizite Eingaben haben
+   * immer Vorrang. Ein Ende vor dem Beginn wird abgelehnt.
+   */
+  private berechneBearbeitung(input: {
+    status: EintragStatus;
+    vorherStatus?: EintragStatus;
+    beginnRoh?: string | null;
+    endeRoh?: string | null;
+    vorherBeginn?: Date | null;
+    vorherEnde?: Date | null;
+  }): { beginn: Date | null; ende: Date | null } {
+    let beginn =
+      input.beginnRoh !== undefined
+        ? input.beginnRoh
+          ? new Date(input.beginnRoh)
+          : null
+        : (input.vorherBeginn ?? null);
+    let ende =
+      input.endeRoh !== undefined
+        ? input.endeRoh
+          ? new Date(input.endeRoh)
+          : null
+        : (input.vorherEnde ?? null);
+
+    const tratEin = (ziel: EintragStatus) => input.status === ziel && input.vorherStatus !== ziel;
+
+    const jetzt = new Date();
+    if (tratEin(EintragStatus.IN_BEARBEITUNG) && !beginn) beginn = jetzt;
+    if (tratEin(EintragStatus.ERLEDIGT) && !ende) ende = jetzt;
+
+    if (beginn && ende && ende.getTime() < beginn.getTime()) {
+      throw new BadRequestException("Bearbeitungsende darf nicht vor dem Beginn liegen.");
+    }
+    return { beginn, ende };
   }
 
   /**

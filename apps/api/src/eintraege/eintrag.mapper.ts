@@ -58,7 +58,17 @@ export function toListItem(eintrag: EintragListPayload): SchichtbucheintragListI
     sapIhAuftrag: eintrag.sapIhAuftrag,
     easyFlowTag: eintrag.easyFlowTag,
     schlagwoerter: eintrag.schlagwoerter.map(ref),
+    bearbeitungBeginn: eintrag.bearbeitungBeginn ? eintrag.bearbeitungBeginn.toISOString() : null,
+    bearbeitungEnde: eintrag.bearbeitungEnde ? eintrag.bearbeitungEnde.toISOString() : null,
+    bearbeitungsdauerMinuten: dauerMinuten(eintrag.bearbeitungBeginn, eintrag.bearbeitungEnde),
   };
+}
+
+/** Bearbeitungsdauer in ganzen Minuten (nur wenn Beginn und Ende gesetzt und plausibel). */
+function dauerMinuten(beginn: Date | null, ende: Date | null): number | null {
+  if (!beginn || !ende) return null;
+  const diff = ende.getTime() - beginn.getTime();
+  return diff >= 0 ? Math.round(diff / 60000) : null;
 }
 
 export function toDetail(eintrag: EintragDetailPayload): SchichtbucheintragDetail {

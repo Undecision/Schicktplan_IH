@@ -43,6 +43,9 @@ function eintrag(
     verantwortlicher: null,
     sapIhAuftrag: null,
     easyFlowTag: null,
+    bearbeitungBeginn: null,
+    bearbeitungEnde: null,
+    bearbeitungsdauerMinuten: null,
     schlagwoerter: [],
   };
 }

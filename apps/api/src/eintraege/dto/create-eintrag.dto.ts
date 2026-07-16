@@ -77,6 +77,18 @@ export class CreateEintragDto {
   @IsISO8601()
   faelligkeitsdatum?: string | null;
 
+  @ApiPropertyOptional({ description: "Beginn der Bearbeitung (ISO-8601)." })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsISO8601()
+  bearbeitungBeginn?: string | null;
+
+  @ApiPropertyOptional({ description: "Ende der Bearbeitung (ISO-8601)." })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsISO8601()
+  bearbeitungEnde?: string | null;
+
   @ApiPropertyOptional({ type: [String] })
   @IsOptional()
   @IsArray()

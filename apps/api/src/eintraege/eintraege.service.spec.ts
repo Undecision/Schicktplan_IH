@@ -49,8 +49,69 @@ function makeEntity(id: string, beschreibung = "x") {
     ersteller: { id: "u", name: "User" },
     verantwortlicher: null,
     schlagwoerter: [],
+    faelligkeitsdatum: null,
+    bearbeitungBeginn: null,
+    bearbeitungEnde: null,
+    kommentare: [],
   };
 }
+
+const CREATE_BASE = {
+  zeitpunkt: "2026-07-16T08:00:00.000Z",
+  schichtId: "s",
+  gewerkId: "g",
+  fachbereichId: "f",
+  technischerPlatzId: "t",
+  prioritaet: Prioritaet.NORMAL,
+  beschreibung: "x",
+};
+
+describe("EintraegeService – Bearbeitungsdauer", () => {
+  it("setzt Bearbeitungsbeginn automatisch bei Erstellung mit Status IN_BEARBEITUNG", async () => {
+    const prisma = makePrisma();
+    prisma.schichtbucheintrag.create.mockResolvedValue(makeEntity("e1"));
+    const service = new EintraegeService(prisma as never, makeNotifications() as never);
+    await service.create(makeUser(), {
+      ...CREATE_BASE,
+      status: EintragStatus.IN_BEARBEITUNG,
+    } as never);
+    const data = prisma.schichtbucheintrag.create.mock.calls[0][0].data;
+    expect(data.bearbeitungBeginn).toBeInstanceOf(Date);
+    expect(data.bearbeitungEnde).toBeNull();
+  });
+
+  it("setzt Bearbeitungsende automatisch beim Übergang zu ERLEDIGT", async () => {
+    const prisma = makePrisma();
+    prisma.schichtbucheintrag.findFirst.mockResolvedValue({
+      id: "e1",
+      erstellerId: "user-1",
+      status: EintragStatus.IN_BEARBEITUNG,
+      bearbeitungBeginn: new Date("2026-07-16T08:00:00.000Z"),
+      bearbeitungEnde: null,
+      gewerk: { name: "Mechanik" },
+    });
+    prisma.schichtbucheintrag.update.mockResolvedValue(makeEntity("e1"));
+    const service = new EintraegeService(prisma as never, makeNotifications() as never);
+    await service.update(makeUser({ id: "user-1" }), "e1", { status: EintragStatus.ERLEDIGT });
+    const data = prisma.schichtbucheintrag.update.mock.calls[0][0].data;
+    expect(data.bearbeitungEnde).toBeInstanceOf(Date);
+    // Beginn bleibt erhalten.
+    expect(data.bearbeitungBeginn).toBeInstanceOf(Date);
+  });
+
+  it("lehnt ein Ende vor dem Beginn ab (400)", async () => {
+    const prisma = makePrisma();
+    const service = new EintraegeService(prisma as never, makeNotifications() as never);
+    await expect(
+      service.create(makeUser(), {
+        ...CREATE_BASE,
+        status: EintragStatus.ERLEDIGT,
+        bearbeitungBeginn: "2026-07-16T10:00:00.000Z",
+        bearbeitungEnde: "2026-07-16T09:00:00.000Z",
+      } as never),
+    ).rejects.toThrow(/nicht vor dem Beginn/);
+  });
+});
 
 describe("EintraegeService – Volltextsuche (P5.1)", () => {
   it("ohne Suchbegriff keine FTS-Query, chronologisch sortiert", async () => {

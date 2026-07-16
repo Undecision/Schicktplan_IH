@@ -77,6 +77,12 @@ export interface SchichtbucheintragListItem extends BaseEntity {
   sapIhAuftrag: string | null;
   easyFlowTag: string | null;
   schlagwoerter: Referenz[];
+  /** Beginn der tatsächlichen Bearbeitung (ISO) oder null. */
+  bearbeitungBeginn: string | null;
+  /** Ende der tatsächlichen Bearbeitung (ISO) oder null. */
+  bearbeitungEnde: string | null;
+  /** Abgeleitete Bearbeitungsdauer in Minuten (nur wenn Beginn und Ende gesetzt). */
+  bearbeitungsdauerMinuten: number | null;
   /**
    * Optionaler Treffer-Auszug der Volltextsuche (P5.1). Enthält die Marker
    * `⟦…⟧` um die gefundenen Begriffe; das Frontend rendert diese als Hervorhebung.
@@ -107,6 +113,8 @@ export interface CreateEintragRequest {
   easyFlowTag?: string | null;
   verantwortlicherId?: string | null;
   faelligkeitsdatum?: string | null;
+  bearbeitungBeginn?: string | null;
+  bearbeitungEnde?: string | null;
   schlagwortIds?: string[];
 }
 

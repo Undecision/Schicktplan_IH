@@ -64,6 +64,8 @@ const formSchema = z.object({
     .refine((v) => !v || EASYFLOW_TAG_REGEX.test(v), "EasyFlow-TAG-Format, z.B. PW4-M-1023."),
   verantwortlicherId: optionalRef,
   faelligkeitsdatum: z.string().optional(),
+  bearbeitungBeginn: z.string().optional(),
+  bearbeitungEnde: z.string().optional(),
   schlagwortIds: z.array(z.string()),
 });
 
@@ -91,6 +93,8 @@ function toDefaults(eintrag?: SchichtbucheintragDetail): FormValues {
       easyFlowTag: "",
       verantwortlicherId: "",
       faelligkeitsdatum: "",
+      bearbeitungBeginn: "",
+      bearbeitungEnde: "",
       schlagwortIds: [],
     };
   }
@@ -110,8 +114,18 @@ function toDefaults(eintrag?: SchichtbucheintragDetail): FormValues {
     easyFlowTag: eintrag.easyFlowTag ?? "",
     verantwortlicherId: eintrag.verantwortlicher?.id ?? "",
     faelligkeitsdatum: eintrag.faelligkeitsdatum ? eintrag.faelligkeitsdatum.slice(0, 10) : "",
+    bearbeitungBeginn: toLocalInput(eintrag.bearbeitungBeginn),
+    bearbeitungEnde: toLocalInput(eintrag.bearbeitungEnde),
     schlagwortIds: eintrag.schlagwoerter.map((s) => s.id),
   };
+}
+
+/** ISO → Wert für <input type="datetime-local"> (lokale Zeit, ohne Sekunden). */
+function toLocalInput(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 export function EintragFormDialog({ open, onOpenChange, eintrag }: EintragFormDialogProps) {
@@ -149,6 +163,12 @@ export function EintragFormDialog({ open, onOpenChange, eintrag }: EintragFormDi
       verantwortlicherId: values.verantwortlicherId || null,
       faelligkeitsdatum: values.faelligkeitsdatum
         ? new Date(`${values.faelligkeitsdatum}T00:00:00`).toISOString()
+        : null,
+      bearbeitungBeginn: values.bearbeitungBeginn
+        ? new Date(values.bearbeitungBeginn).toISOString()
+        : null,
+      bearbeitungEnde: values.bearbeitungEnde
+        ? new Date(values.bearbeitungEnde).toISOString()
         : null,
       schlagwortIds: values.schlagwortIds,
     };
@@ -263,6 +283,15 @@ export function EintragFormDialog({ open, onOpenChange, eintrag }: EintragFormDi
             />
             <Field label="Fälligkeit (optional)" error={undefined}>
               <Input type="date" {...register("faelligkeitsdatum")} />
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Bearbeitungsbeginn (optional)" error={errors.bearbeitungBeginn?.message}>
+              <Input type="datetime-local" {...register("bearbeitungBeginn")} />
+            </Field>
+            <Field label="Bearbeitungsende (optional)" error={errors.bearbeitungEnde?.message}>
+              <Input type="datetime-local" {...register("bearbeitungEnde")} />
             </Field>
           </div>
 

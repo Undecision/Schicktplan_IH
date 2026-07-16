@@ -234,6 +234,12 @@ model Schichtbucheintrag {
   easyFlowTag      String?
   faelligkeitsdatum DateTime?
 
+  /// Beginn/Ende der tatsächlichen Bearbeitung. Werden beim Statuswechsel
+  /// automatisch vorbelegt (Beginn → IN_BEARBEITUNG, Ende → ERLEDIGT), sofern
+  /// leer, und können manuell überschrieben werden. Die Dauer wird daraus abgeleitet.
+  bearbeitungBeginn DateTime?
+  bearbeitungEnde   DateTime?
+
   schichtId          String @db.Uuid
   gewerkId           String @db.Uuid
   fachbereichId      String @db.Uuid

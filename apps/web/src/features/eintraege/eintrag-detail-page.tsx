@@ -18,6 +18,14 @@ function formatDateTime(iso: string) {
   return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+/** Minuten als „X h Y min" (oder „Y min") formatieren. */
+export function formatDauer(minuten: number | null): string {
+  if (minuten === null || minuten === undefined) return "—";
+  const std = Math.floor(minuten / 60);
+  const min = minuten % 60;
+  return std > 0 ? `${std} h ${min} min` : `${min} min`;
+}
+
 export function EintragDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -87,6 +95,15 @@ export function EintragDetailPage() {
           />
           <Detail label="SAP-IH-Auftrag" value={eintrag.sapIhAuftrag ?? "—"} />
           <Detail label="EasyFlow-TAG" value={eintrag.easyFlowTag ?? "—"} />
+          <Detail
+            label="Bearbeitungsbeginn"
+            value={eintrag.bearbeitungBeginn ? formatDateTime(eintrag.bearbeitungBeginn) : "—"}
+          />
+          <Detail
+            label="Bearbeitungsende"
+            value={eintrag.bearbeitungEnde ? formatDateTime(eintrag.bearbeitungEnde) : "—"}
+          />
+          <Detail label="Bearbeitungsdauer" value={formatDauer(eintrag.bearbeitungsdauerMinuten)} />
           <div>
             <p className="text-muted-foreground">Schlagwörter</p>
             <div className="mt-1 flex flex-wrap gap-1">

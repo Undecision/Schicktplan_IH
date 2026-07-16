@@ -23,6 +23,7 @@ import { RequirePermission } from "@/features/auth/protected-route";
 import { useEintraege, useFormOptions } from "./queries";
 import { PrioritaetBadge, StatusBadge } from "./badges";
 import { EintragFormDialog } from "./eintrag-form-dialog";
+import { formatDauer } from "./eintrag-detail-page";
 import { Highlighted } from "./highlight";
 
 // Filter-Schlüssel, die als Query-Parameter in der URL persistiert werden
@@ -210,20 +211,21 @@ export function EintraegeListPage() {
               <TableHead>Status</TableHead>
               <TableHead>Gewerk</TableHead>
               <TableHead>Techn. Platz</TableHead>
+              <TableHead>Dauer</TableHead>
               <TableHead>Beschreibung</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
                   Lädt…
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && eintraege.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
                   Keine Einträge gefunden.
                 </TableCell>
               </TableRow>
@@ -245,6 +247,9 @@ export function EintraegeListPage() {
                 </TableCell>
                 <TableCell className="whitespace-nowrap">{eintrag.gewerk.name}</TableCell>
                 <TableCell className="whitespace-nowrap">{eintrag.technischerPlatz.name}</TableCell>
+                <TableCell className="whitespace-nowrap text-muted-foreground">
+                  {formatDauer(eintrag.bearbeitungsdauerMinuten)}
+                </TableCell>
                 <TableCell className="max-w-md truncate">
                   <Highlighted text={eintrag.highlight} fallback={eintrag.beschreibung} />
                 </TableCell>

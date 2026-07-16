@@ -20,6 +20,8 @@ interface EintragSnapshot {
   sapIhAuftrag?: string | null;
   easyFlowTag?: string | null;
   faelligkeitsdatum?: string | null;
+  bearbeitungBeginn?: string | null;
+  bearbeitungEnde?: string | null;
   zeitpunkt?: string;
   verantwortlicher?: { name: string } | null;
   schicht?: { name: string };
@@ -51,6 +53,16 @@ const FELDER: { feld: string; label: string; get: FeldExtractor }[] = [
     feld: "zeitpunkt",
     label: "Zeitpunkt",
     get: (s) => (s.zeitpunkt ? formatDate(s.zeitpunkt) : null),
+  },
+  {
+    feld: "bearbeitungBeginn",
+    label: "Bearbeitungsbeginn",
+    get: (s) => (s.bearbeitungBeginn ? formatDate(s.bearbeitungBeginn) : null),
+  },
+  {
+    feld: "bearbeitungEnde",
+    label: "Bearbeitungsende",
+    get: (s) => (s.bearbeitungEnde ? formatDate(s.bearbeitungEnde) : null),
   },
   {
     feld: "verantwortlicher",
