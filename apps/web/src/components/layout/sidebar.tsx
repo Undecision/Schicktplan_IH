@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
   ClipboardList,
+  ClipboardCheck,
   ArrowLeftRight,
   BarChart3,
   Settings,
@@ -24,6 +25,12 @@ interface NavItem {
 const navItems: NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/schichtbuch", label: "Schichtbuch", icon: ClipboardList },
+  {
+    to: "/anweisungen",
+    label: "Anweisungen",
+    icon: ClipboardCheck,
+    permission: "anweisungen:read",
+  },
   { to: "/uebergabe", label: "Übergabe", icon: ArrowLeftRight },
   { to: "/berichte", label: "Berichte", icon: BarChart3 },
   { to: "/admin", label: "Admin", icon: Settings, permission: "admin:benutzer:manage" },

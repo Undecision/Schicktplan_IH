@@ -58,6 +58,8 @@ model User {
   freigegebeneBerichte    Schichtbericht[]     @relation("BerichtFreigeber")
   uebergebeneUebergaben   Schichtuebergabe[]   @relation("UebergabeUebergeber")
   uebernommeneUebergaben  Schichtuebergabe[]   @relation("UebergabeUebernehmer")
+  erstellteAnweisungen    Arbeitsanweisung[]   @relation("AnweisungErsteller")
+  anweisungsQuittungen    ArbeitsanweisungQuittung[]
 
   @@map("users")
 }
@@ -126,6 +128,7 @@ model Gewerk {
   eintraege Schichtbucheintrag[]
   berichte  Schichtbericht[]
   uebergaben Schichtuebergabe[]
+  arbeitsanweisungen Arbeitsanweisung[]
 
   @@map("gewerke")
 }
@@ -203,6 +206,7 @@ model SchichtDefinition {
   eintraege Schichtbucheintrag[]
   berichte  Schichtbericht[]
   uebergaben Schichtuebergabe[]
+  arbeitsanweisungen Arbeitsanweisung[]
 
   @@map("schicht_definitionen")
 }
@@ -433,4 +437,57 @@ model AuditLog {
   @@index([entity, entityId])
   @@index([actorId])
   @@map("audit_log")
+}
+
+/// Arbeitsanweisung (P: Meister-Hinweise). Meister/Schichtleiter stellen ihrem
+/// Team unregelmäßig Hinweise bereit – als Freitext und/oder mit einem Anhang
+/// (Foto/PDF). Ziel ist ein Gewerk und optional eine Schicht. Mitarbeiter
+/// quittieren die Anweisung als gelesen (siehe ArbeitsanweisungQuittung).
+model Arbeitsanweisung {
+  id    String  @id @default(uuid()) @db.Uuid
+  titel String
+  /// Freitext-Inhalt (optional, wenn ein Anhang vorhanden ist).
+  text  String?
+
+  gewerkId String @db.Uuid
+  gewerk   Gewerk @relation(fields: [gewerkId], references: [id])
+
+  /// Optionale Ziel-Schicht (nur informativer Kontext, keine Zugriffsbeschränkung).
+  schichtId String?            @db.Uuid
+  schicht   SchichtDefinition? @relation(fields: [schichtId], references: [id])
+
+  erstellerId String @db.Uuid
+  ersteller   User   @relation("AnweisungErsteller", fields: [erstellerId], references: [id])
+
+  /// Einzelner Inline-Anhang in MinIO (optional). Metadaten für Anzeige/Download.
+  anhangObjectKey String?
+  anhangDateiname String?
+  anhangMime      String?
+  anhangGroesse   Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  quittungen ArbeitsanweisungQuittung[]
+
+  @@index([gewerkId])
+  @@index([erstellerId])
+  @@map("arbeitsanweisungen")
+}
+
+/// Lesequittung einer Arbeitsanweisung durch einen Mitarbeiter.
+model ArbeitsanweisungQuittung {
+  id String @id @default(uuid()) @db.Uuid
+
+  arbeitsanweisungId String           @db.Uuid
+  arbeitsanweisung   Arbeitsanweisung @relation(fields: [arbeitsanweisungId], references: [id], onDelete: Cascade)
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id])
+
+  gelesenAm DateTime @default(now())
+
+  @@unique([arbeitsanweisungId, userId])
+  @@index([userId])
+  @@map("arbeitsanweisung_quittungen")
 }

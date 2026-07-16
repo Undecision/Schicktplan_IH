@@ -36,6 +36,8 @@ const PERMISSION_DESCRIPTIONS: Record<PermissionKey, string> = {
   "eintraege:update": "Schichtbucheinträge bearbeiten",
   "eintraege:comment": "Schichtbucheinträge kommentieren",
   "eintraege:attach": "Dateianhänge hochladen/löschen",
+  "anweisungen:read": "Arbeitsanweisungen lesen und quittieren",
+  "anweisungen:manage": "Arbeitsanweisungen erstellen und Lesestatus einsehen",
   "uebergaben:manage": "Schichtübergaben erstellen/bearbeiten",
   "berichte:read": "Berichte lesen",
   "berichte:freigeben": "Schichtberichte freigeben",
@@ -52,6 +54,8 @@ const ROLE_PERMISSIONS: Record<Rolle, readonly PermissionKey[]> = {
     "eintraege:update",
     "eintraege:comment",
     "eintraege:attach",
+    "anweisungen:read",
+    "anweisungen:manage",
     "uebergaben:manage",
     "berichte:read",
     "berichte:freigeben",
@@ -63,8 +67,9 @@ const ROLE_PERMISSIONS: Record<Rolle, readonly PermissionKey[]> = {
     "eintraege:update",
     "eintraege:comment",
     "eintraege:attach",
+    "anweisungen:read",
   ],
-  [Rolle.LESEBERECHTIGTE]: ["eintraege:read", "berichte:read"],
+  [Rolle.LESEBERECHTIGTE]: ["eintraege:read", "berichte:read", "anweisungen:read"],
 };
 
 const DEFAULT_GEWERKE = ["Elektrotechnik", "Mechanik", "Versorgung/Medien"];

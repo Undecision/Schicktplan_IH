@@ -13,3 +13,4 @@ export * from "./berichte";
 export * from "./uebergaben";
 export * from "./reporting";
 export * from "./dsgvo";
+export * from "./arbeitsanweisungen";

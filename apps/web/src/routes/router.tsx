@@ -3,6 +3,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { DashboardPage } from "@/pages/dashboard-page";
 import { SchichtbuchPage } from "@/pages/schichtbuch-page";
 import { EintragDetailPage } from "@/features/eintraege/eintrag-detail-page";
+import { AnweisungenPage } from "@/features/anweisungen/anweisungen-page";
 import { UebergabePage } from "@/pages/uebergabe-page";
 import { UebergabeDetailPage } from "@/pages/uebergabe-detail-page";
 import { BerichtePage } from "@/pages/berichte-page";
@@ -35,6 +36,15 @@ export const router = createBrowserRouter([
         path: "schichtbuch/:id",
         element: <EintragDetailPage />,
         handle: { title: "Schichtbucheintrag", subtitle: "Detailansicht" },
+      },
+      {
+        path: "anweisungen",
+        element: (
+          <RequirePermissionRoute permission="anweisungen:read">
+            <AnweisungenPage />
+          </RequirePermissionRoute>
+        ),
+        handle: { title: "Arbeitsanweisungen", subtitle: "Hinweise der Meister an das Team" },
       },
       {
         path: "uebergabe",

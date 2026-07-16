@@ -1,6 +1,7 @@
 import { Outlet, useMatches } from "react-router-dom";
 import { Sidebar } from "./sidebar";
 import { UserMenu } from "./user-menu";
+import { AnweisungPopup } from "@/features/anweisungen/anweisung-popup";
 
 interface RouteHandle {
   title?: string;
@@ -29,6 +30,8 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+
+      <AnweisungPopup />
     </div>
   );
 }
