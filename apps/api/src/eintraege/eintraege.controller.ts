@@ -32,6 +32,12 @@ export class EintraegeController {
     return this.service.findOne(user, id);
   }
 
+  @RequirePermissions("eintraege:read")
+  @Get(":id/historie")
+  historie(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
+    return this.service.historie(user, id);
+  }
+
   @Audited("Schichtbucheintrag")
   @RequirePermissions("eintraege:create")
   @Post()

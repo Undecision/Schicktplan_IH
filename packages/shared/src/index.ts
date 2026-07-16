@@ -8,3 +8,4 @@ export * from "./stammdaten";
 export * from "./eintraege";
 export * from "./anhaenge";
 export * from "./dashboard";
+export * from "./historie";

@@ -11,6 +11,7 @@ import {
   fetchEintrag,
   fetchEintraege,
   fetchFormOptions,
+  fetchHistorie,
   updateEintrag,
 } from "./api";
 import { deleteAnhang, fetchAnhaenge, uploadAnhang } from "./anhaenge-api";
@@ -34,6 +35,14 @@ export function useEintrag(id: string | undefined) {
 
 export function useFormOptions() {
   return useQuery({ queryKey: ["eintrag-form-options"], queryFn: fetchFormOptions });
+}
+
+export function useHistorie(id: string | undefined) {
+  return useQuery({
+    queryKey: [...EINTRAEGE_KEY, "historie", id],
+    queryFn: () => fetchHistorie(id as string),
+    enabled: !!id,
+  });
 }
 
 export function useCreateEintrag() {

@@ -10,6 +10,7 @@ import { useAddKommentar, useEintrag } from "./queries";
 import { PrioritaetBadge, StatusBadge } from "./badges";
 import { EintragFormDialog } from "./eintrag-form-dialog";
 import { EintragAnhaenge } from "./eintrag-anhaenge";
+import { EintragHistorie } from "./eintrag-historie";
 
 function formatDateTime(iso: string) {
   const d = new Date(iso);
@@ -137,6 +138,8 @@ export function EintragDetailPage() {
           </RequirePermission>
         </CardContent>
       </Card>
+
+      <EintragHistorie eintragId={eintrag.id} />
 
       <EintragFormDialog open={editOpen} onOpenChange={setEditOpen} eintrag={eintrag} />
     </div>

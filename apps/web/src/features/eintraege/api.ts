@@ -2,6 +2,7 @@ import type {
   CreateEintragRequest,
   CreateKommentarRequest,
   EintragFilter,
+  HistorieEintrag,
   Referenz,
   SchichtbucheintragDetail,
   SchichtbucheintragListItem,
@@ -44,6 +45,11 @@ export async function addKommentar(
     `/eintraege/${id}/kommentare`,
     payload,
   );
+  return data;
+}
+
+export async function fetchHistorie(id: string): Promise<HistorieEintrag[]> {
+  const { data } = await apiClient.get<HistorieEintrag[]>(`/eintraege/${id}/historie`);
   return data;
 }
 

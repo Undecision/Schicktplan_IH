@@ -12,6 +12,7 @@ import { CreateEintragDto } from "./dto/create-eintrag.dto";
 import { UpdateEintragDto } from "./dto/update-eintrag.dto";
 import { ListEintraegeQueryDto } from "./dto/list-eintraege.query.dto";
 import { CreateKommentarDto } from "./dto/create-kommentar.dto";
+import { toHistorieEintrag } from "./eintrag-historie.mapper";
 
 /**
  * Rollen mit uneingeschränktem Bearbeitungsrecht (dürfen fremde Einträge
@@ -202,6 +203,19 @@ export class EintraegeService {
       include: EINTRAG_DETAIL_INCLUDE,
     });
     return toDetail(eintrag);
+  }
+
+  /**
+   * Änderungsverlauf eines Eintrags (P6.1) aus dem append-only Audit-Log.
+   * Sichtbarkeit wird über findOne erzwungen (wirft 404, falls nicht sichtbar).
+   */
+  async historie(user: AuthenticatedUser, eintragId: string) {
+    await this.findOne(user, eintragId);
+    const logs = await this.prisma.auditLog.findMany({
+      where: { entity: "Schichtbucheintrag", entityId: eintragId },
+      orderBy: { createdAt: "desc" },
+    });
+    return logs.map(toHistorieEintrag);
   }
 
   async addKommentar(user: AuthenticatedUser, eintragId: string, dto: CreateKommentarDto) {
