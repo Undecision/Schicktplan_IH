@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { Module } from "@nestjs/common";
-import { APP_FILTER, APP_INTERCEPTOR } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { ConfigModule, ConfigService } from "@nestjs/config";
-import { ThrottlerModule } from "@nestjs/throttler";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { LoggerModule } from "nestjs-pino";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
@@ -25,6 +25,7 @@ import { UebergabenModule } from "./uebergaben/uebergaben.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { PdfModule } from "./pdf/pdf.module";
 import { ReportingModule } from "./reporting/reporting.module";
+import { DsgvoModule } from "./dsgvo/dsgvo.module";
 import { BootstrapModule } from "./bootstrap/bootstrap.module";
 
 @Module({
@@ -66,6 +67,7 @@ import { BootstrapModule } from "./bootstrap/bootstrap.module";
     BerichteModule,
     UebergabenModule,
     ReportingModule,
+    DsgvoModule,
     BootstrapModule,
     HealthModule,
   ],
@@ -79,6 +81,12 @@ import { BootstrapModule } from "./bootstrap/bootstrap.module";
     {
       provide: APP_INTERCEPTOR,
       useClass: AuditInterceptor,
+    },
+    // Globales Rate-Limit (P11.1) – ergänzt Helmet-Header, CORS und die
+    // Validation-Pipe (whitelist/forbidNonWhitelisted) aus main.ts.
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })

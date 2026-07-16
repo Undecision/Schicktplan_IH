@@ -261,6 +261,9 @@ model Schichtbucheintrag {
   suchVektor Unsupported("tsvector")?
 
   @@index([gewerkId])
+  @@index([fachbereichId])
+  @@index([technischerPlatzId])
+  @@index([erstellerId])
   @@index([status])
   @@index([prioritaet])
   @@index([zeitpunkt])

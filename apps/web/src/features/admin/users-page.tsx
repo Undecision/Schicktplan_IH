@@ -17,13 +17,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useDeactivateUser, useUsers } from "./queries";
+import { useAnonymisierenPerson, useDeactivateUser, useUsers } from "./queries";
+import { exportPersonData } from "./api";
 import { UserFormDialog } from "./user-form-dialog";
 import { ResetPasswordDialog } from "./reset-password-dialog";
 
 export function UsersPage() {
   const { data: users = [], isLoading, isError } = useUsers();
   const deactivateUser = useDeactivateUser();
+  const anonymisieren = useAnonymisierenPerson();
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserSummary | undefined>(undefined);
@@ -132,6 +134,23 @@ export function UsersPage() {
                         onSelect={() => deactivateUser.mutate(user.id)}
                       >
                         Deaktivieren
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => void exportPersonData(user.id, user.name)}>
+                        DSGVO-Auskunft (Export)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onSelect={() => {
+                          if (
+                            window.confirm(
+                              `Person „${user.name}" anonymisieren? Name/E-Mail werden unwiderruflich pseudonymisiert; Einträge bleiben erhalten.`,
+                            )
+                          ) {
+                            anonymisieren.mutate(user.id);
+                          }
+                        }}
+                      >
+                        Anonymisieren (DSGVO)
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

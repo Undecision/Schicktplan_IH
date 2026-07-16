@@ -5,6 +5,7 @@ import type {
   UpdateUserRequest,
 } from "@schichtbuch/shared";
 import {
+  anonymisierenPerson,
   createUser,
   deactivateUser,
   fetchGewerke,
@@ -18,6 +19,14 @@ const GEWERKE_KEY = ["admin", "gewerke"];
 
 export function useUsers() {
   return useQuery({ queryKey: USERS_KEY, queryFn: fetchUsers });
+}
+
+export function useAnonymisierenPerson() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => anonymisierenPerson(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: USERS_KEY }),
+  });
 }
 
 export function useGewerke() {
