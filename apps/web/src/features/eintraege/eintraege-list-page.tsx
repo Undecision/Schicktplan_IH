@@ -250,6 +250,7 @@ export function EintraegeListPage() {
               <TableHead>Status</TableHead>
               <TableHead>Gewerk</TableHead>
               <TableHead>Techn. Platz</TableHead>
+              <TableHead>SAP-Auftrag</TableHead>
               <TableHead>Dauer</TableHead>
               <TableHead>Beschreibung</TableHead>
             </TableRow>
@@ -257,14 +258,14 @@ export function EintraegeListPage() {
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">
+                <TableCell colSpan={9} className="text-center text-muted-foreground">
                   Lädt…
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && eintraege.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">
+                <TableCell colSpan={9} className="text-center text-muted-foreground">
                   Keine Einträge gefunden.
                 </TableCell>
               </TableRow>
@@ -289,6 +290,9 @@ export function EintraegeListPage() {
                 </TableCell>
                 <TableCell className="whitespace-nowrap">{eintrag.gewerk.name}</TableCell>
                 <TableCell className="whitespace-nowrap">{eintrag.technischerPlatz.name}</TableCell>
+                <TableCell className="whitespace-nowrap tabular-nums">
+                  {eintrag.sapIhAuftrag || <span className="text-muted-foreground">—</span>}
+                </TableCell>
                 <TableCell className="whitespace-nowrap text-muted-foreground">
                   {formatDauer(eintrag.bearbeitungsdauerMinuten)}
                 </TableCell>

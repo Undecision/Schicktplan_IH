@@ -30,6 +30,7 @@ const MAX_MB = Math.floor(ANWEISUNG_ANHANG_MAX_GROESSE_BYTES / (1024 * 1024));
 const formSchema = z.object({
   titel: z.string().min(1, "Titel ist erforderlich"),
   gewerkId: z.string().min(1, "Gewerk ist erforderlich"),
+  fachbereichId: z.string(),
   schichtId: z.string(),
   text: z.string(),
 });
@@ -58,12 +59,12 @@ export function AnweisungFormDialog({
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { titel: "", gewerkId: "", schichtId: "", text: "" },
+    defaultValues: { titel: "", gewerkId: "", fachbereichId: "", schichtId: "", text: "" },
   });
 
   useEffect(() => {
     if (open) {
-      reset({ titel: "", gewerkId: "", schichtId: "", text: "" });
+      reset({ titel: "", gewerkId: "", fachbereichId: "", schichtId: "", text: "" });
       setFile(null);
     }
   }, [open, reset]);
@@ -105,6 +106,7 @@ export function AnweisungFormDialog({
           titel: values.titel,
           text: values.text.trim() || null,
           gewerkId: values.gewerkId,
+          fachbereichId: values.fachbereichId || null,
           schichtId: values.schichtId || null,
         },
         file,
@@ -174,6 +176,25 @@ export function AnweisungFormDialog({
                 )}
               />
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Fachbereich (optional)</Label>
+            <Controller
+              control={control}
+              name="fachbereichId"
+              render={({ field }) => (
+                <Combobox
+                  value={field.value}
+                  onChange={field.onChange}
+                  options={(options?.fachbereiche ?? []).map((f) => ({
+                    value: f.id,
+                    label: f.name,
+                  }))}
+                  emptyOption="— kein Fachbereich —"
+                />
+              )}
+            />
           </div>
 
           <div className="space-y-1.5">

@@ -24,7 +24,8 @@ export function AnweisungDetailDialog({
   const { hasPermission } = useAuth();
   const quittieren = useQuittieren();
   const darfVerwalten = hasPermission("anweisungen:manage");
-  const istEmpfaenger = hasPermission("anweisungen:read");
+  // Empfänger = Leser ohne Verwaltungsrecht (nur diese müssen quittieren).
+  const istEmpfaenger = hasPermission("anweisungen:read") && !darfVerwalten;
 
   return (
     <Dialog open={!!anweisung} onOpenChange={onOpenChange}>
@@ -38,6 +39,9 @@ export function AnweisungDetailDialog({
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 <Badge variant="outline">{anweisung.gewerk.name}</Badge>
+                {anweisung.fachbereich && (
+                  <Badge variant="outline">{anweisung.fachbereich.name}</Badge>
+                )}
                 {anweisung.schicht && <Badge variant="outline">{anweisung.schicht.name}</Badge>}
                 <span>
                   von {anweisung.ersteller.name} · {formatDateTime(anweisung.createdAt)}

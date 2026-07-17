@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { CreateArbeitsanweisungRequest } from "@schichtbuch/shared";
+import type { ArbeitsanweisungFilter, CreateArbeitsanweisungRequest } from "@schichtbuch/shared";
 import {
   createAnweisung,
   deleteAnweisung,
@@ -11,8 +11,11 @@ import {
 
 const ANWEISUNGEN_KEY = ["arbeitsanweisungen"];
 
-export function useAnweisungen() {
-  return useQuery({ queryKey: ANWEISUNGEN_KEY, queryFn: fetchAnweisungen });
+export function useAnweisungen(filter: ArbeitsanweisungFilter = {}) {
+  return useQuery({
+    queryKey: [...ANWEISUNGEN_KEY, filter],
+    queryFn: () => fetchAnweisungen(filter),
+  });
 }
 
 export function useUngelesenAnweisungen(enabled = true) {

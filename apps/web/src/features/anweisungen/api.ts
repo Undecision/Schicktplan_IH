@@ -1,4 +1,5 @@
 import type {
+  ArbeitsanweisungFilter,
   ArbeitsanweisungListItem,
   ArbeitsanweisungQuittungen,
   CreateArbeitsanweisungRequest,
@@ -7,8 +8,16 @@ import { apiClient } from "@/lib/api-client";
 
 const BASE = "/arbeitsanweisungen";
 
-export async function fetchAnweisungen(): Promise<ArbeitsanweisungListItem[]> {
-  const { data } = await apiClient.get<ArbeitsanweisungListItem[]>(BASE);
+export async function fetchAnweisungen(
+  filter: ArbeitsanweisungFilter = {},
+): Promise<ArbeitsanweisungListItem[]> {
+  const params: Record<string, string> = {};
+  if (filter.q) params.q = filter.q;
+  if (filter.gewerkId) params.gewerkId = filter.gewerkId;
+  if (filter.fachbereichId) params.fachbereichId = filter.fachbereichId;
+  if (filter.schichtId) params.schichtId = filter.schichtId;
+  if (filter.gelesen !== undefined) params.gelesen = String(filter.gelesen);
+  const { data } = await apiClient.get<ArbeitsanweisungListItem[]>(BASE, { params });
   return data;
 }
 

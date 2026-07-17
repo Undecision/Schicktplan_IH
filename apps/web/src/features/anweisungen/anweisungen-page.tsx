@@ -1,10 +1,13 @@
-import { useState } from "react";
-import { AlertCircle, Check, Paperclip, Plus } from "lucide-react";
-import type { ArbeitsanweisungListItem } from "@schichtbuch/shared";
+import { useEffect, useMemo, useState } from "react";
+import { AlertCircle, Check, Paperclip, Plus, Search, X } from "lucide-react";
+import type { ArbeitsanweisungFilter, ArbeitsanweisungListItem } from "@schichtbuch/shared";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Combobox } from "@/components/ui/combobox";
 import { RequirePermission } from "@/features/auth/protected-route";
 import { useAuth } from "@/features/auth/auth-context";
+import { useFormOptions } from "@/features/eintraege/queries";
 import { useAnweisungen } from "./queries";
 import { AnweisungFormDialog } from "./anweisung-form-dialog";
 import { AnweisungDetailDialog } from "./anweisung-detail-dialog";
@@ -16,17 +19,49 @@ function formatDateTime(iso: string): string {
 }
 
 export function AnweisungenPage() {
-  const { data: anweisungen = [], isLoading } = useAnweisungen();
   const { hasPermission } = useAuth();
+  const { data: options } = useFormOptions();
   const [formOpen, setFormOpen] = useState(false);
   const [detail, setDetail] = useState<ArbeitsanweisungListItem | null>(null);
+
+  // Such-/Filterzustand (Suche debounced), um „alte" Anweisungen wiederzufinden.
+  const [suche, setSuche] = useState("");
+  const [suchInput, setSuchInput] = useState("");
+  const [gewerkId, setGewerkId] = useState("");
+  const [fachbereichId, setFachbereichId] = useState("");
+  const [schichtId, setSchichtId] = useState("");
+  useEffect(() => {
+    const handle = setTimeout(() => setSuche(suchInput.trim()), 300);
+    return () => clearTimeout(handle);
+  }, [suchInput]);
+
+  const filter = useMemo<ArbeitsanweisungFilter>(
+    () => ({
+      q: suche || undefined,
+      gewerkId: gewerkId || undefined,
+      fachbereichId: fachbereichId || undefined,
+      schichtId: schichtId || undefined,
+    }),
+    [suche, gewerkId, fachbereichId, schichtId],
+  );
+  const hatFilter = !!(suche || gewerkId || fachbereichId || schichtId);
+
+  function reset() {
+    setSuche("");
+    setSuchInput("");
+    setGewerkId("");
+    setFachbereichId("");
+    setSchichtId("");
+  }
+
+  const { data: anweisungen = [], isLoading } = useAnweisungen(filter);
 
   const ungelesen = anweisungen.filter((a) => !a.gelesen);
   const gelesen = anweisungen.filter((a) => a.gelesen);
   const darfVerwalten = hasPermission("anweisungen:manage");
-  // Empfänger (Instandhalter/Schichtleiter) sehen Ungelesen/Gelesen; reine
-  // Ersteller (Meister ohne Leserecht) sehen eine flache Liste mit Lesestatus.
-  const istEmpfaenger = hasPermission("anweisungen:read");
+  // Empfänger (Instandhalter/Schichtleiter) sehen Ungelesen/Gelesen; Ersteller
+  // (Meister/Admin mit Verwaltungsrecht) sehen eine flache Liste mit Lesestatus.
+  const istEmpfaenger = hasPermission("anweisungen:read") && !darfVerwalten;
 
   return (
     <div className="space-y-6">
@@ -44,9 +79,58 @@ export function AnweisungenPage() {
         </RequirePermission>
       </div>
 
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="relative w-full max-w-xs">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={suchInput}
+            onChange={(e) => setSuchInput(e.target.value)}
+            placeholder="Suche (Titel, Text, Ersteller…)"
+            className="pl-9"
+          />
+        </div>
+        <div className="w-44">
+          <Combobox
+            value={gewerkId}
+            onChange={setGewerkId}
+            options={(options?.gewerke ?? []).map((g) => ({ value: g.id, label: g.name }))}
+            placeholder="Gewerk: Alle"
+            emptyOption="Gewerk: Alle"
+          />
+        </div>
+        <div className="w-44">
+          <Combobox
+            value={fachbereichId}
+            onChange={setFachbereichId}
+            options={(options?.fachbereiche ?? []).map((f) => ({ value: f.id, label: f.name }))}
+            placeholder="Fachbereich: Alle"
+            emptyOption="Fachbereich: Alle"
+          />
+        </div>
+        <div className="w-44">
+          <Combobox
+            value={schichtId}
+            onChange={setSchichtId}
+            options={(options?.schichten ?? []).map((s) => ({ value: s.id, label: s.name }))}
+            placeholder="Schicht: Alle"
+            emptyOption="Schicht: Alle"
+          />
+        </div>
+        {hatFilter && (
+          <Button variant="ghost" size="sm" onClick={reset}>
+            <X className="h-4 w-4" />
+            Zurücksetzen
+          </Button>
+        )}
+      </div>
+
       {isLoading && <p className="text-sm text-muted-foreground">Lädt…</p>}
       {!isLoading && anweisungen.length === 0 && (
-        <p className="text-sm text-muted-foreground">Keine Arbeitsanweisungen vorhanden.</p>
+        <p className="text-sm text-muted-foreground">
+          {hatFilter
+            ? "Keine Anweisungen für die aktuellen Filter."
+            : "Keine Arbeitsanweisungen vorhanden."}
+        </p>
       )}
 
       {!istEmpfaenger && darfVerwalten && anweisungen.length > 0 && (
@@ -156,6 +240,7 @@ function AnweisungCard({
       )}
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <Badge variant="outline">{anweisung.gewerk.name}</Badge>
+        {anweisung.fachbereich && <Badge variant="outline">{anweisung.fachbereich.name}</Badge>}
         {anweisung.schicht && <Badge variant="outline">{anweisung.schicht.name}</Badge>}
         <span>
           {anweisung.ersteller.name} · {formatDateTime(anweisung.createdAt)}
