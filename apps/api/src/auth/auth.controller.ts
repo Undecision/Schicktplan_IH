@@ -39,7 +39,7 @@ export class AuthController {
   @Post("login")
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) response: Response) {
-    const result = await this.authService.login(dto.email, dto.password);
+    const result = await this.authService.login(dto.username, dto.password);
     this.setRefreshCookie(response, result.refreshToken);
     return { accessToken: result.accessToken, user: result.user };
   }

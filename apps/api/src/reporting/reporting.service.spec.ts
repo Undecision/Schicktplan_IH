@@ -10,6 +10,7 @@ import { ReportingService } from "./reporting.service";
 function makeUser(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
   return {
     id: "u1",
+    username: "u",
     email: "u@e.de",
     name: "U",
     rollen: [Rolle.MEISTER],

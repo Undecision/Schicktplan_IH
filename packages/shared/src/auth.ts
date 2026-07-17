@@ -25,6 +25,8 @@ export const ROLLEN = [
 
 export interface AuthenticatedUser {
   id: string;
+  /** Anmeldename (eindeutig). */
+  username: string;
   email: string;
   name: string;
   /** Rollennamen (Systemrollen oder frei angelegte Rollen). */
@@ -34,7 +36,8 @@ export interface AuthenticatedUser {
 }
 
 export interface LoginRequest {
-  email: string;
+  /** Anmeldung per Benutzername (nicht E-Mail). */
+  username: string;
   password: string;
 }
 
@@ -45,6 +48,7 @@ export interface LoginResponse {
 
 /** Selbstverwaltung: eigene Stammdaten ändern (eingeloggter Nutzer). */
 export interface UpdateProfileRequest {
+  username: string;
   name: string;
   email: string;
 }

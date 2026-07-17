@@ -12,8 +12,11 @@ export class LocalAuthProvider implements AuthProvider {
     private readonly passwordService: PasswordService,
   ) {}
 
-  async validateCredentials(email: string, password: string): Promise<ValidatedCredentials | null> {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+  async validateCredentials(
+    username: string,
+    password: string,
+  ): Promise<ValidatedCredentials | null> {
+    const user = await this.prisma.user.findUnique({ where: { username } });
     if (!user || !user.passwordHash || user.status !== "AKTIV" || user.deletedAt) {
       return null;
     }

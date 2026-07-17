@@ -18,6 +18,7 @@ function fehlerText(error: unknown): string {
 }
 
 const profilSchema = z.object({
+  username: z.string().min(1, "Benutzername ist erforderlich"),
   name: z.string().min(1, "Name ist erforderlich"),
   email: z.string().email("Bitte eine gültige E-Mail-Adresse eingeben"),
 });
@@ -42,7 +43,10 @@ export function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <StammdatenCard onUpdated={setCurrentUser} initial={{ name: user.name, email: user.email }} />
+      <StammdatenCard
+        onUpdated={setCurrentUser}
+        initial={{ username: user.username, name: user.name, email: user.email }}
+      />
       <PasswortCard />
       <Card>
         <CardHeader>
@@ -107,6 +111,13 @@ function StammdatenCard({
           </Alert>
         )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          <div className="space-y-1.5">
+            <Label>Benutzername</Label>
+            <Input {...register("username")} />
+            {errors.username && (
+              <p className="text-sm text-destructive">{errors.username.message}</p>
+            )}
+          </div>
           <div className="space-y-1.5">
             <Label>Name</Label>
             <Input {...register("name")} />

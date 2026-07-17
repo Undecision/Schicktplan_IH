@@ -11,6 +11,7 @@ import { EintraegeService } from "./eintraege.service";
 function makeUser(overrides: Partial<AuthenticatedUser> = {}): AuthenticatedUser {
   return {
     id: "user-1",
+    username: "u",
     email: "u@example.com",
     name: "User",
     rollen: [Rolle.INSTANDHALTER],

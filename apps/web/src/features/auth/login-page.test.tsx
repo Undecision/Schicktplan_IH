@@ -30,7 +30,7 @@ describe("LoginPage", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Anmelden" })).toBeEnabled());
     await user.click(screen.getByRole("button", { name: "Anmelden" }));
 
-    expect(await screen.findByText("E-Mail ist erforderlich")).toBeInTheDocument();
+    expect(await screen.findByText("Benutzername ist erforderlich")).toBeInTheDocument();
     expect(await screen.findByText("Passwort ist erforderlich")).toBeInTheDocument();
   });
 
@@ -41,12 +41,12 @@ describe("LoginPage", () => {
     renderLoginPage();
 
     await waitFor(() => expect(screen.getByRole("button", { name: "Anmelden" })).toBeEnabled());
-    await user.type(screen.getByLabelText("E-Mail"), "test@example.com");
+    await user.type(screen.getByLabelText("Benutzername"), "testuser");
     await user.type(screen.getByLabelText("Passwort"), "falsches-passwort");
     await user.click(screen.getByRole("button", { name: "Anmelden" }));
 
     expect(
-      await screen.findByText("Anmeldung fehlgeschlagen. Bitte E-Mail und Passwort prüfen."),
+      await screen.findByText("Anmeldung fehlgeschlagen. Bitte Benutzername und Passwort prüfen."),
     ).toBeInTheDocument();
   });
 });

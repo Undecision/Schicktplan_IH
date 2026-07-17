@@ -19,6 +19,7 @@ export function toAuthenticatedUser(user: UserWithAccess): AuthenticatedUser {
 
   return {
     id: user.id,
+    username: user.username,
     email: user.email,
     name: user.name,
     rollen,
@@ -30,6 +31,7 @@ export function toAuthenticatedUser(user: UserWithAccess): AuthenticatedUser {
 export function toUserSummary(user: UserWithAccess): UserSummary {
   return {
     id: user.id,
+    username: user.username,
     email: user.email,
     name: user.name,
     status: user.status,

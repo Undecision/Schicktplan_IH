@@ -28,6 +28,8 @@ export interface BootstrapAdminConfig {
   email?: string;
   password?: string;
   name?: string;
+  /** Anmeldename; ohne Angabe aus dem E-Mail-Lokalteil abgeleitet. */
+  username?: string;
 }
 
 const PERMISSION_DESCRIPTIONS: Record<PermissionKey, string> = PERMISSION_LABELS;
@@ -204,6 +206,7 @@ async function seedBootstrapAdmin(
     );
     return;
   }
+  const username = (config.username?.trim() || email.split("@")[0] || "admin").toLowerCase();
 
   const adminRole = await prisma.role.findUniqueOrThrow({ where: { name: Rolle.ADMINISTRATOR } });
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -219,9 +222,9 @@ async function seedBootstrapAdmin(
   }
 
   const passwordHash = await hashPassword(password);
-  const user = await prisma.user.create({ data: { email, name, passwordHash } });
+  const user = await prisma.user.create({ data: { username, email, name, passwordHash } });
   await prisma.userRole.create({ data: { userId: user.id, roleId: adminRole.id } });
-  log(`Bootstrap-Administrator angelegt: ${email}`);
+  log(`Bootstrap-Administrator angelegt: ${username} (${email})`);
 }
 
 export async function runSeed(

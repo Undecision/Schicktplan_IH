@@ -16,7 +16,7 @@ describe("App", () => {
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: "Schichtbuch" })).toBeInTheDocument();
     });
-    expect(screen.getByLabelText("E-Mail")).toBeInTheDocument();
+    expect(screen.getByLabelText("Benutzername")).toBeInTheDocument();
     expect(screen.getByLabelText("Passwort")).toBeInTheDocument();
   });
 });

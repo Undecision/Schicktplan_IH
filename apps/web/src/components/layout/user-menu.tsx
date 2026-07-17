@@ -44,7 +44,10 @@ export function UserMenu() {
         </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
+        <DropdownMenuLabel className="space-y-0.5">
+          <div>@{user.username}</div>
+          <div className="text-xs font-normal text-muted-foreground">{user.email}</div>
+        </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           <Link to="/profil">

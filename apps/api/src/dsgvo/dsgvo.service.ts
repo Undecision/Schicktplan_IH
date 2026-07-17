@@ -90,6 +90,7 @@ export class DsgvoService {
       where: { id: userId },
       data: {
         name: `Anonymisiert #${kurz}`,
+        username: `anonymisiert_${userId}`,
         email: `anonymisiert+${userId}@geloescht.local`,
         status: "DEAKTIVIERT",
         passwordHash: null,

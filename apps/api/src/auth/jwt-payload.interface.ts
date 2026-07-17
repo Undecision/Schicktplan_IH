@@ -2,6 +2,7 @@ import type { PermissionKey } from "@schichtbuch/shared";
 
 export interface JwtAccessPayload {
   sub: string;
+  username: string;
   email: string;
   name: string;
   rollen: string[];

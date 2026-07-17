@@ -26,6 +26,7 @@ const passwordSchema = z
   .regex(/[\d\W]/, PASSWORD_POLICY_HINT);
 
 const formSchema = z.object({
+  username: z.string().min(1, "Benutzername ist erforderlich"),
   email: z.string().min(1, "E-Mail ist erforderlich").email("Ungültige E-Mail-Adresse"),
   name: z.string().min(1, "Name ist erforderlich"),
   password: z.union([passwordSchema, z.literal("")]).optional(),
@@ -57,12 +58,13 @@ export function UserFormDialog({ open, onOpenChange, user }: UserFormDialogProps
     setError,
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { email: "", name: "", password: "", rollen: [], gewerkeIds: [] },
+    defaultValues: { username: "", email: "", name: "", password: "", rollen: [], gewerkeIds: [] },
   });
 
   useEffect(() => {
     if (open) {
       reset({
+        username: user?.username ?? "",
         email: user?.email ?? "",
         name: user?.name ?? "",
         password: "",
@@ -77,7 +79,12 @@ export function UserFormDialog({ open, onOpenChange, user }: UserFormDialogProps
       if (isEdit && user) {
         await updateUser.mutateAsync({
           id: user.id,
-          payload: { name: values.name, rollen: values.rollen, gewerkeIds: values.gewerkeIds },
+          payload: {
+            username: values.username,
+            name: values.name,
+            rollen: values.rollen,
+            gewerkeIds: values.gewerkeIds,
+          },
         });
       } else {
         if (!values.password) {
@@ -85,6 +92,7 @@ export function UserFormDialog({ open, onOpenChange, user }: UserFormDialogProps
           return;
         }
         await createUser.mutateAsync({
+          username: values.username,
           email: values.email,
           name: values.name,
           password: values.password,
@@ -117,6 +125,14 @@ export function UserFormDialog({ open, onOpenChange, user }: UserFormDialogProps
         )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          <div className="space-y-1.5">
+            <Label htmlFor="username">Benutzername</Label>
+            <Input id="username" {...register("username")} />
+            {errors.username && (
+              <p className="text-sm text-destructive">{errors.username.message}</p>
+            )}
+          </div>
+
           <div className="space-y-1.5">
             <Label htmlFor="email">E-Mail</Label>
             <Input id="email" type="email" disabled={isEdit} {...register("email")} />

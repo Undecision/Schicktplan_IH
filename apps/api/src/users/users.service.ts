@@ -33,9 +33,11 @@ export class UsersService {
   }
 
   async create(dto: CreateUserDto): Promise<UserSummary> {
-    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (existing) {
+    if (await this.prisma.user.findUnique({ where: { email: dto.email } })) {
       throw new ConflictException("Diese E-Mail-Adresse ist bereits vergeben.");
+    }
+    if (await this.prisma.user.findUnique({ where: { username: dto.username } })) {
+      throw new ConflictException("Dieser Benutzername ist bereits vergeben.");
     }
 
     const passwordHash = await this.passwordService.hash(dto.password);
@@ -43,6 +45,7 @@ export class UsersService {
 
     const user = await this.prisma.user.create({
       data: {
+        username: dto.username,
         email: dto.email,
         name: dto.name,
         passwordHash,
@@ -58,6 +61,14 @@ export class UsersService {
     const data: Prisma.UserUpdateInput = {};
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.status !== undefined) data.status = dto.status;
+    if (dto.username !== undefined) {
+      const kollision = await this.prisma.user.findFirst({
+        where: { username: dto.username, id: { not: id } },
+        select: { id: true },
+      });
+      if (kollision) throw new ConflictException("Dieser Benutzername ist bereits vergeben.");
+      data.username = dto.username;
+    }
 
     if (dto.rollen !== undefined) {
       const roles = await this.resolveRollen(dto.rollen);

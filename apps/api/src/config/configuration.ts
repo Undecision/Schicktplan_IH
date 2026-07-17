@@ -73,6 +73,7 @@ export function buildConfiguration(env: EnvConfig) {
         email: env.BOOTSTRAP_ADMIN_EMAIL,
         password: env.BOOTSTRAP_ADMIN_PASSWORD,
         name: env.BOOTSTRAP_ADMIN_NAME,
+        username: env.BOOTSTRAP_ADMIN_USERNAME,
       },
     },
   } as const;

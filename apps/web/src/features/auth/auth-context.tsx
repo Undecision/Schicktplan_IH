@@ -7,7 +7,7 @@ import { fetchMe, login as loginRequest, logoutRequest, refreshAccessToken } fro
 interface AuthContextValue {
   user: AuthenticatedUser | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   hasPermission: (permission: PermissionKey) => boolean;
   /** Aktuellen Nutzer im Context aktualisieren (z.B. nach Profiländerung). */
@@ -62,8 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const response = await loginRequest({ email, password });
+  const login = useCallback(async (username: string, password: string) => {
+    const response = await loginRequest({ username, password });
     setAccessToken(response.accessToken);
     setUser(response.user);
   }, []);

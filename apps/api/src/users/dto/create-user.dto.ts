@@ -3,6 +3,11 @@ import { ArrayNotEmpty, IsArray, IsEmail, IsNotEmpty, IsString, IsUUID } from "c
 import { IsStrongPassword } from "../../common/validators/is-strong-password.validator";
 
 export class CreateUserDto {
+  @ApiProperty({ description: "Anmeldename (eindeutig)." })
+  @IsString()
+  @IsNotEmpty()
+  username!: string;
+
   @ApiProperty()
   @IsEmail()
   email!: string;

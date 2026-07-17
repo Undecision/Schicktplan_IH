@@ -57,6 +57,7 @@ export const envSchema = z.object({
   BOOTSTRAP_ADMIN_EMAIL: z.string().optional().default(""),
   BOOTSTRAP_ADMIN_PASSWORD: z.string().optional().default(""),
   BOOTSTRAP_ADMIN_NAME: z.string().optional().default("Administrator"),
+  BOOTSTRAP_ADMIN_USERNAME: z.string().optional().default(""),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

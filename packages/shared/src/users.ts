@@ -8,6 +8,8 @@ export interface GewerkRef {
 }
 
 export interface UserSummary extends BaseEntity {
+  /** Anmeldename (eindeutig). */
+  username: string;
   email: string;
   name: string;
   status: UserStatus;
@@ -17,6 +19,7 @@ export interface UserSummary extends BaseEntity {
 }
 
 export interface CreateUserRequest {
+  username: string;
   email: string;
   name: string;
   password: string;
@@ -25,6 +28,7 @@ export interface CreateUserRequest {
 }
 
 export interface UpdateUserRequest {
+  username?: string;
   name?: string;
   rollen?: string[];
   gewerkeIds?: string[];

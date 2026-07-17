@@ -66,6 +66,7 @@ export function UsersPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
+              <TableHead>Benutzername</TableHead>
               <TableHead>E-Mail</TableHead>
               <TableHead>Rollen</TableHead>
               <TableHead>Gewerke</TableHead>
@@ -76,14 +77,14 @@ export function UsersPage() {
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
                   Lädt…
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && users.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
                   Keine Benutzer vorhanden.
                 </TableCell>
               </TableRow>
@@ -91,6 +92,7 @@ export function UsersPage() {
             {users.map((user) => (
               <TableRow key={user.id}>
                 <TableCell className="font-medium">{user.name}</TableCell>
+                <TableCell className="tabular-nums">{user.username}</TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">

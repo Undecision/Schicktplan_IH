@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "./auth-context";
 
 const loginSchema = z.object({
-  email: z.string().min(1, "E-Mail ist erforderlich").email("Ungültige E-Mail-Adresse"),
+  username: z.string().min(1, "Benutzername ist erforderlich"),
   password: z.string().min(1, "Passwort ist erforderlich"),
 });
 
@@ -38,10 +38,10 @@ export function LoginPage() {
   async function onSubmit(values: LoginFormValues) {
     setServerError(null);
     try {
-      await login(values.email, values.password);
+      await login(values.username, values.password);
       navigate("/", { replace: true });
     } catch {
-      setServerError("Anmeldung fehlgeschlagen. Bitte E-Mail und Passwort prüfen.");
+      setServerError("Anmeldung fehlgeschlagen. Bitte Benutzername und Passwort prüfen.");
     }
   }
 
@@ -65,15 +65,17 @@ export function LoginPage() {
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div className="space-y-1.5">
-            <Label htmlFor="email">E-Mail</Label>
+            <Label htmlFor="username">Benutzername</Label>
             <Input
-              id="email"
-              type="email"
+              id="username"
+              type="text"
               autoComplete="username"
-              aria-invalid={!!errors.email}
-              {...register("email")}
+              aria-invalid={!!errors.username}
+              {...register("username")}
             />
-            {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+            {errors.username && (
+              <p className="text-sm text-destructive">{errors.username.message}</p>
+            )}
           </div>
 
           <div className="space-y-1.5">

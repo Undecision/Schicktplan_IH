@@ -9,7 +9,10 @@ export interface ValidatedCredentials {
  */
 export interface AuthProvider {
   readonly name: string;
-  validateCredentials(email: string, password: string): Promise<ValidatedCredentials | null>;
+  validateCredentials(
+    usernameOrEmail: string,
+    password: string,
+  ): Promise<ValidatedCredentials | null>;
 }
 
 export const AUTH_PROVIDER = Symbol("AUTH_PROVIDER");

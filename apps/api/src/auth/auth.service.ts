@@ -34,9 +34,9 @@ export class AuthService {
     private readonly auditLog: AuditLogService,
   ) {}
 
-  async login(email: string, password: string): Promise<LoginResult> {
+  async login(username: string, password: string): Promise<LoginResult> {
     const lockoutConfig = this.configService.get("auth", { infer: true }).lockout;
-    const existingUser = await this.prisma.user.findUnique({ where: { email } });
+    const existingUser = await this.prisma.user.findUnique({ where: { username } });
 
     if (existingUser?.lockedUntil && existingUser.lockedUntil > new Date()) {
       await this.auditLog.log({
@@ -52,7 +52,7 @@ export class AuthService {
       );
     }
 
-    const validated = await this.localAuthProvider.validateCredentials(email, password);
+    const validated = await this.localAuthProvider.validateCredentials(username, password);
 
     if (!validated) {
       if (existingUser) {
@@ -138,19 +138,27 @@ export class AuthService {
   /** Eigene Stammdaten (Name, E-Mail) ändern. E-Mail muss eindeutig bleiben. */
   async updateProfile(
     userId: string,
-    input: { name: string; email: string },
+    input: { username: string; name: string; email: string },
   ): Promise<AuthenticatedUser> {
     const email = input.email.trim().toLowerCase();
-    const kollision = await this.prisma.user.findFirst({
+    const username = input.username.trim();
+    const emailKollision = await this.prisma.user.findFirst({
       where: { email, id: { not: userId }, deletedAt: null },
       select: { id: true },
     });
-    if (kollision) {
+    if (emailKollision) {
       throw new ConflictException("Diese E-Mail-Adresse wird bereits verwendet.");
+    }
+    const nameKollision = await this.prisma.user.findFirst({
+      where: { username, id: { not: userId }, deletedAt: null },
+      select: { id: true },
+    });
+    if (nameKollision) {
+      throw new ConflictException("Dieser Benutzername wird bereits verwendet.");
     }
     const user = await this.prisma.user.update({
       where: { id: userId },
-      data: { name: input.name.trim(), email },
+      data: { username, name: input.name.trim(), email },
       include: USER_WITH_ACCESS_INCLUDE,
     });
     await this.auditLog.log({
@@ -198,6 +206,7 @@ export class AuthService {
     const authConfig = this.configService.get("auth", { infer: true });
     const payload: JwtAccessPayload = {
       sub: user.id,
+      username: user.username,
       email: user.email,
       name: user.name,
       rollen: user.rollen,
