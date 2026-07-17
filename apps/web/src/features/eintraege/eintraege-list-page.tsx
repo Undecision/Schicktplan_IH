@@ -1,17 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import {
-  AlertTriangle,
-  ChevronDown,
-  Info,
-  Paperclip,
-  Search,
-  SlidersHorizontal,
-  X,
-} from "lucide-react";
+import { AlertTriangle, ChevronDown, Info, Search, SlidersHorizontal, X } from "lucide-react";
 import {
   EINTRAG_STATUS,
-  EINTRAG_TYP_LABELS,
   EintragTyp,
   PRIORITAETEN,
   PRIORITAET_LABELS,
@@ -27,20 +18,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { RequirePermission } from "@/features/auth/protected-route";
 import { useEintraege, useFormOptions } from "./queries";
-import { PrioritaetBadge, StatusBadge } from "./badges";
 import { EintragFormDialog } from "./eintrag-form-dialog";
-import { formatDauer } from "./eintrag-detail-page";
-import { Highlighted } from "./highlight";
+import { EintraegeTabelle } from "./eintraege-tabelle";
 
 // Filter-Schlüssel, die als Query-Parameter in der URL persistiert werden
 // (teilbare Ansichten, P5.2). Nicht persistiert: `erfassen` (UI-Trigger).
@@ -58,12 +39,6 @@ const FILTER_KEYS = [
   "von",
   "bis",
 ] as const;
-
-function formatDateTime(iso: string) {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
 
 export function EintraegeListPage() {
   const navigate = useNavigate();
@@ -240,104 +215,14 @@ export function EintraegeListPage() {
         </div>
       )}
 
-      <div className="rounded-lg border border-border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Zeitpunkt</TableHead>
-              <TableHead>Typ</TableHead>
-              <TableHead>Priorität</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Gewerk</TableHead>
-              <TableHead>Techn. Platz</TableHead>
-              <TableHead>SAP-Auftrag</TableHead>
-              <TableHead>Dauer</TableHead>
-              <TableHead>Beschreibung</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading && (
-              <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground">
-                  Lädt…
-                </TableCell>
-              </TableRow>
-            )}
-            {!isLoading && eintraege.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground">
-                  Keine Einträge gefunden.
-                </TableCell>
-              </TableRow>
-            )}
-            {eintraege.map((eintrag) => (
-              <TableRow
-                key={eintrag.id}
-                className="cursor-pointer"
-                onClick={() => navigate(`/schichtbuch/${eintrag.id}`)}
-              >
-                <TableCell className="whitespace-nowrap">
-                  {formatDateTime(eintrag.zeitpunkt)}
-                </TableCell>
-                <TableCell>
-                  <TypBadge typ={eintrag.typ} />
-                </TableCell>
-                <TableCell>
-                  <PrioritaetBadge prioritaet={eintrag.prioritaet} />
-                </TableCell>
-                <TableCell>
-                  <StatusBadge status={eintrag.status} />
-                </TableCell>
-                <TableCell className="whitespace-nowrap">{eintrag.gewerk.name}</TableCell>
-                <TableCell className="whitespace-nowrap">{eintrag.technischerPlatz.name}</TableCell>
-                <TableCell className="whitespace-nowrap tabular-nums">
-                  {eintrag.sapIhAuftrag || <span className="text-muted-foreground">—</span>}
-                </TableCell>
-                <TableCell className="whitespace-nowrap text-muted-foreground">
-                  {formatDauer(eintrag.bearbeitungsdauerMinuten)}
-                </TableCell>
-                <TableCell className="max-w-md">
-                  <div className="flex items-center gap-1.5">
-                    {eintrag.anzahlAnhaenge > 0 && (
-                      <span
-                        className="flex shrink-0 items-center gap-0.5 text-muted-foreground"
-                        title={`${eintrag.anzahlAnhaenge} Anhang/Anhänge`}
-                      >
-                        <Paperclip className="h-3.5 w-3.5" />
-                        {eintrag.anzahlAnhaenge > 1 && (
-                          <span className="text-xs">{eintrag.anzahlAnhaenge}</span>
-                        )}
-                      </span>
-                    )}
-                    <span className="truncate">
-                      <Highlighted text={eintrag.highlight} fallback={eintrag.beschreibung} />
-                    </span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <EintraegeTabelle
+        eintraege={eintraege}
+        isLoading={isLoading}
+        onRowClick={(id) => navigate(`/schichtbuch/${id}`)}
+      />
 
       <EintragFormDialog open={formOpen} onOpenChange={setFormOpen} typ={formTyp} />
     </div>
-  );
-}
-
-/** Kleines Badge, das den Eintragstyp (Schichtinformation / Störung) kennzeichnet. */
-function TypBadge({ typ }: { typ: EintragTyp }) {
-  const istStoerung = typ === EintragTyp.STOERUNG;
-  return (
-    <span
-      className={
-        "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium " +
-        (istStoerung ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground")
-      }
-    >
-      {istStoerung ? <AlertTriangle className="h-3 w-3" /> : <Info className="h-3 w-3" />}
-      {EINTRAG_TYP_LABELS[typ]}
-    </span>
   );
 }
 
