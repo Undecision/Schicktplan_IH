@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, ArrowRight, ClipboardList, FileStack, Hammer, Wrench } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -10,6 +10,8 @@ import {
   type DashboardData,
 } from "@schichtbuch/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { PrioritaetBadge, StatusBadge } from "@/features/eintraege/badges";
 import { useDashboard } from "@/features/dashboard/queries";
 
@@ -21,6 +23,7 @@ function formatDateTime(iso: string) {
 
 export function DashboardPage() {
   const { data, isLoading, isError } = useDashboard();
+  const [erledigteAusblenden, setErledigteAusblenden] = useState(false);
 
   if (isLoading) {
     return <p className="text-muted-foreground">Lädt…</p>;
@@ -100,30 +103,49 @@ export function DashboardPage() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
             <CardTitle className="text-base">Zuletzt erfasst</CardTitle>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="erledigte-ausblenden"
+                checked={erledigteAusblenden}
+                onCheckedChange={setErledigteAusblenden}
+              />
+              <Label htmlFor="erledigte-ausblenden" className="text-xs text-muted-foreground">
+                Erledigte ausblenden
+              </Label>
+            </div>
           </CardHeader>
           <CardContent className="space-y-2">
-            {data.letzteEintraege.length === 0 && (
-              <p className="text-sm text-muted-foreground">Noch keine Einträge.</p>
-            )}
-            {data.letzteEintraege.map((eintrag) => (
-              <Link
-                key={eintrag.id}
-                to={`/schichtbuch/${eintrag.id}`}
-                className="flex items-center gap-3 rounded-md border border-border p-2 hover:bg-accent"
-              >
-                <PrioritaetBadge prioritaet={eintrag.prioritaet} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{eintrag.beschreibung}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDateTime(eintrag.zeitpunkt)} · {eintrag.gewerk.name} ·{" "}
-                    {eintrag.technischerPlatz.name}
+            {(() => {
+              const eintraege = erledigteAusblenden
+                ? data.letzteEintraege.filter((e) => e.status !== EintragStatus.ERLEDIGT)
+                : data.letzteEintraege;
+              if (eintraege.length === 0) {
+                return (
+                  <p className="text-sm text-muted-foreground">
+                    {erledigteAusblenden ? "Keine offenen Einträge." : "Noch keine Einträge."}
                   </p>
-                </div>
-                <StatusBadge status={eintrag.status} />
-              </Link>
-            ))}
+                );
+              }
+              return eintraege.map((eintrag) => (
+                <Link
+                  key={eintrag.id}
+                  to={`/schichtbuch/${eintrag.id}`}
+                  className="flex items-center gap-3 rounded-md border border-border p-2 hover:bg-accent"
+                >
+                  <PrioritaetBadge prioritaet={eintrag.prioritaet} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{eintrag.beschreibung}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDateTime(eintrag.zeitpunkt)} · {eintrag.gewerk.name} ·{" "}
+                      {eintrag.technischerPlatz.name}
+                    </p>
+                  </div>
+                  <StatusBadge status={eintrag.status} />
+                </Link>
+              ));
+            })()}
           </CardContent>
         </Card>
 
