@@ -45,6 +45,8 @@ export interface ArbeitsanweisungListItem {
   /** Freitext-Inhalt (optional, wenn ein Anhang vorhanden ist). */
   text: string | null;
   gewerk: Referenz;
+  /** Fachbereich (optional; filter-/durchsuchbar). */
+  fachbereich: Referenz | null;
   /** Ziel-Schicht (optional; nur informativer Kontext). */
   schicht: Referenz | null;
   ersteller: Referenz;
@@ -64,7 +66,19 @@ export interface CreateArbeitsanweisungRequest {
   titel: string;
   text?: string | null;
   gewerkId: string;
+  fachbereichId?: string | null;
   schichtId?: string | null;
+}
+
+/** Such-/Filterparameter für die Anweisungsübersicht. */
+export interface ArbeitsanweisungFilter {
+  /** Volltextartige Suche über Titel, Text, Ersteller, Gewerk, Fachbereich, Schicht. */
+  q?: string;
+  gewerkId?: string;
+  fachbereichId?: string;
+  schichtId?: string;
+  /** Lesestatus des aktuellen Nutzers: nur gelesene bzw. nur ungelesene. */
+  gelesen?: boolean;
 }
 
 /** Lesestatus eines einzelnen Empfängers (für die Meister-Auswertung). */

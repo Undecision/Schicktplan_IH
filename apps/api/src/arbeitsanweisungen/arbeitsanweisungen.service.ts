@@ -24,6 +24,7 @@ import {
   type AnweisungPayload,
 } from "./arbeitsanweisungen.mapper";
 import { CreateArbeitsanweisungDto } from "./dto/create-arbeitsanweisung.dto";
+import { ListArbeitsanweisungenQueryDto } from "./dto/list-arbeitsanweisungen.query.dto";
 
 @Injectable()
 export class ArbeitsanweisungenService {
@@ -41,27 +42,57 @@ export class ArbeitsanweisungenService {
     return { gewerk: { name: { in: user.gewerkeSichtbarkeit } } };
   }
 
-  /** Ob der Nutzer ein Empfänger (Teammitglied) des Gewerks der Anweisung ist. */
-  private istEmpfaenger(user: AuthenticatedUser, gewerkName: string): boolean {
-    return user.gewerkeSichtbarkeit.includes(gewerkName);
+  /**
+   * Empfänger einer Anweisung sind Mitarbeiter, die sie lesen/quittieren müssen:
+   * aktive Nutzer mit der Berechtigung `anweisungen:read`, die NICHT selbst
+   * verwalten (`anweisungen:manage`). Damit werden Meister und Administratoren
+   * (Ersteller) nicht als „zu lesen" gezählt.
+   */
+  private istEmpfaengerNutzer(user: AuthenticatedUser): boolean {
+    return (
+      user.permissions.includes("anweisungen:read") &&
+      !user.permissions.includes("anweisungen:manage")
+    );
   }
 
-  /**
-   * Anzahl aktiver Empfänger je Gewerk: aktive Nutzer, in deren Gewerk-
-   * Sichtbarkeit das jeweilige Gewerk enthalten ist ("passend zum Gewerk").
-   */
+  /** Aktive Empfänger (Leser, keine Verwalter) eines Gewerks. */
+  private async empfaengerFuerGewerk(gewerkId: string): Promise<{ id: string; name: string }[]> {
+    const users = await this.prisma.user.findMany({
+      where: {
+        status: "AKTIV",
+        deletedAt: null,
+        gewerkeSichtbarkeit: { some: { id: gewerkId } },
+      },
+      select: {
+        id: true,
+        name: true,
+        roles: {
+          select: {
+            role: {
+              select: { permissions: { select: { permission: { select: { key: true } } } } },
+            },
+          },
+        },
+      },
+      orderBy: { name: "asc" },
+    });
+    return users
+      .filter((u) => {
+        const keys = new Set(
+          u.roles.flatMap((r) => r.role.permissions.map((p) => p.permission.key)),
+        );
+        return keys.has("anweisungen:read") && !keys.has("anweisungen:manage");
+      })
+      .map((u) => ({ id: u.id, name: u.name }));
+  }
+
+  /** Anzahl der Empfänger je Gewerk (für die Kennzahl „X von Y gelesen"). */
   private async empfaengerAnzahlProGewerk(gewerkIds: string[]): Promise<Map<string, number>> {
     const eindeutig = [...new Set(gewerkIds)];
     const paare = await Promise.all(
       eindeutig.map(async (gewerkId) => {
-        const anzahl = await this.prisma.user.count({
-          where: {
-            status: "AKTIV",
-            deletedAt: null,
-            gewerkeSichtbarkeit: { some: { id: gewerkId } },
-          },
-        });
-        return [gewerkId, anzahl] as const;
+        const empfaenger = await this.empfaengerFuerGewerk(gewerkId);
+        return [gewerkId, empfaenger.length] as const;
       }),
     );
     return new Map(paare);
@@ -82,6 +113,14 @@ export class ArbeitsanweisungenService {
       select: { id: true },
     });
     if (!gewerk) throw new BadRequestException("Gewerk nicht gefunden.");
+
+    if (dto.fachbereichId) {
+      const fachbereich = await this.prisma.fachbereich.findFirst({
+        where: { id: dto.fachbereichId, deletedAt: null },
+        select: { id: true },
+      });
+      if (!fachbereich) throw new BadRequestException("Fachbereich nicht gefunden.");
+    }
 
     if (dto.schichtId) {
       const schicht = await this.prisma.schichtDefinition.findFirst({
@@ -120,6 +159,7 @@ export class ArbeitsanweisungenService {
           titel: dto.titel,
           text,
           gewerk: { connect: { id: dto.gewerkId } },
+          fachbereich: dto.fachbereichId ? { connect: { id: dto.fachbereichId } } : undefined,
           schicht: dto.schichtId ? { connect: { id: dto.schichtId } } : undefined,
           ersteller: { connect: { id: user.id } },
           anhangObjectKey: anhang?.objectKey ?? null,
@@ -137,10 +177,37 @@ export class ArbeitsanweisungenService {
     }
   }
 
-  /** Alle für den Nutzer sichtbaren Anweisungen inkl. eigenem Lesestatus. */
-  async listForUser(user: AuthenticatedUser): Promise<ArbeitsanweisungListItem[]> {
+  /** Alle für den Nutzer sichtbaren Anweisungen inkl. eigenem Lesestatus (mit Filter/Suche). */
+  async listForUser(
+    user: AuthenticatedUser,
+    filter: ListArbeitsanweisungenQueryDto = {},
+  ): Promise<ArbeitsanweisungListItem[]> {
+    const where: Prisma.ArbeitsanweisungWhereInput = { ...this.visibleWhere(user) };
+    if (filter.gewerkId) where.gewerkId = filter.gewerkId;
+    if (filter.fachbereichId) where.fachbereichId = filter.fachbereichId;
+    if (filter.schichtId) where.schichtId = filter.schichtId;
+
+    const q = filter.q?.trim();
+    if (q) {
+      const contains = { contains: q, mode: "insensitive" as const };
+      where.OR = [
+        { titel: contains },
+        { text: contains },
+        { ersteller: { name: contains } },
+        { gewerk: { name: contains } },
+        { fachbereich: { name: contains } },
+        { schicht: { name: contains } },
+      ];
+    }
+    // Lesestatus-Filter (nur Anweisungen mit/ohne Quittung des Nutzers).
+    if (filter.gelesen === true) {
+      where.quittungen = { some: { userId: user.id } };
+    } else if (filter.gelesen === false) {
+      where.quittungen = { none: { userId: user.id } };
+    }
+
     const anweisungen = await this.prisma.arbeitsanweisung.findMany({
-      where: this.visibleWhere(user),
+      where,
       include: {
         ...ANWEISUNG_INCLUDE,
         quittungen: { where: { userId: user.id }, select: { gelesenAm: true } },
@@ -161,15 +228,14 @@ export class ArbeitsanweisungenService {
   }
 
   /**
-   * Ungelesene Anweisungen für das Anmelde-Popup: nur solche, für die der Nutzer
-   * Empfänger (Teammitglied des Gewerks) ist und die er noch nicht quittiert hat.
+   * Ungelesene Anweisungen für das Anmelde-Popup: nur für echte Empfänger
+   * (Leseberechtigte ohne Verwaltungsrecht) und nur noch nicht quittierte.
    */
   async ungelesenForUser(user: AuthenticatedUser): Promise<ArbeitsanweisungListItem[]> {
-    // Ohne konfigurierte Gewerk-Zugehörigkeit ist der Nutzer kein Empfänger
-    // eines bestimmten Gewerks → keine Popup-Benachrichtigungen.
-    if (user.gewerkeSichtbarkeit.length === 0) return [];
-    const alle = await this.listForUser(user);
-    return alle.filter((a) => !a.gelesen && this.istEmpfaenger(user, a.gewerk.name));
+    // Nur echte Empfänger (Leser ohne Verwaltungsrecht) und nur mit konfigurierten
+    // Gewerken erhalten Popup-Benachrichtigungen.
+    if (!this.istEmpfaengerNutzer(user) || user.gewerkeSichtbarkeit.length === 0) return [];
+    return this.listForUser(user, { gelesen: false });
   }
 
   /** Quittiert eine Anweisung als gelesen (idempotent). */
@@ -209,15 +275,7 @@ export class ArbeitsanweisungenService {
    */
   async quittungen(user: AuthenticatedUser, id: string): Promise<ArbeitsanweisungQuittungen> {
     const anweisung = await this.findVisibleOrThrow(user, id);
-    const empfaenger = await this.prisma.user.findMany({
-      where: {
-        status: "AKTIV",
-        deletedAt: null,
-        gewerkeSichtbarkeit: { some: { id: anweisung.gewerkId } },
-      },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    });
+    const empfaenger = await this.empfaengerFuerGewerk(anweisung.gewerkId);
     const quittungen = await this.prisma.arbeitsanweisungQuittung.findMany({
       where: { arbeitsanweisungId: id },
       select: { userId: true, gelesenAm: true },

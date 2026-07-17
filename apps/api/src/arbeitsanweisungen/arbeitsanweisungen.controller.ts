@@ -7,6 +7,7 @@ import {
   HttpCode,
   Param,
   Post,
+  Query,
   Res,
   StreamableFile,
   UploadedFile,
@@ -25,6 +26,7 @@ import { Audited } from "../audit/decorators/audited.decorator";
 import type { UploadedFileLike } from "../anhaenge/anhaenge.service";
 import { ArbeitsanweisungenService } from "./arbeitsanweisungen.service";
 import { CreateArbeitsanweisungDto } from "./dto/create-arbeitsanweisung.dto";
+import { ListArbeitsanweisungenQueryDto } from "./dto/list-arbeitsanweisungen.query.dto";
 
 @ApiTags("arbeitsanweisungen")
 @Controller("arbeitsanweisungen")
@@ -34,8 +36,8 @@ export class ArbeitsanweisungenController {
   // Ansehen ist für Empfänger (read) UND Ersteller/Meister (manage) möglich.
   @RequireAnyPermission("anweisungen:read", "anweisungen:manage")
   @Get()
-  list(@CurrentUser() user: AuthenticatedUser) {
-    return this.service.listForUser(user);
+  list(@CurrentUser() user: AuthenticatedUser, @Query() query: ListArbeitsanweisungenQueryDto) {
+    return this.service.listForUser(user, query);
   }
 
   @RequirePermissions("anweisungen:read")

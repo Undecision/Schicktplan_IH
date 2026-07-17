@@ -22,6 +22,7 @@ function makeAnweisung(overrides: Record<string, unknown> = {}) {
     titel: "Hinweis",
     text: "Bitte beachten",
     gewerkId: "g1",
+    fachbereichId: null,
     schichtId: null,
     erstellerId: "meister-1",
     anhangObjectKey: null,
@@ -29,11 +30,21 @@ function makeAnweisung(overrides: Record<string, unknown> = {}) {
     anhangMime: null,
     anhangGroesse: null,
     gewerk: { id: "g1", name: "Mechanik" },
+    fachbereich: null,
     schicht: null,
     ersteller: { id: "meister-1", name: "Meister" },
     quittungen: [],
     _count: { quittungen: 0 },
     ...overrides,
+  };
+}
+
+/** Empfänger-Nutzer (hat anweisungen:read, nicht :manage) für empfaengerFuerGewerk-Mocks. */
+function empfaengerUser(id: string, name: string) {
+  return {
+    id,
+    name,
+    roles: [{ role: { permissions: [{ permission: { key: "anweisungen:read" } }] } }],
   };
 }
 
@@ -75,7 +86,13 @@ describe("ArbeitsanweisungenService", () => {
   it("legt Anweisung mit Text an und liefert Empfängerzahl", async () => {
     const prisma = makePrisma();
     prisma.arbeitsanweisung.create.mockResolvedValue(makeAnweisung());
-    prisma.user.count.mockResolvedValue(5);
+    prisma.user.findMany.mockResolvedValue([
+      empfaengerUser("u1", "Anna"),
+      empfaengerUser("u2", "Bea"),
+      empfaengerUser("u3", "Cem"),
+      empfaengerUser("u4", "Dana"),
+      empfaengerUser("u5", "Eda"),
+    ]);
     const service = new ArbeitsanweisungenService(prisma as never, makeStorage() as never);
     const result = await service.create(
       makeUser({ rollen: [Rolle.MEISTER] }),
@@ -87,27 +104,70 @@ describe("ArbeitsanweisungenService", () => {
     expect(result.gelesen).toBe(false);
   });
 
-  it("ungelesen: nur Empfänger-Gewerke, leere Sichtbarkeit ergibt keine Popups", async () => {
+  it("zählt Meister/Verwalter NICHT als Empfänger", async () => {
+    const prisma = makePrisma();
+    prisma.arbeitsanweisung.create.mockResolvedValue(makeAnweisung());
+    prisma.user.findMany.mockResolvedValue([
+      empfaengerUser("u1", "Leser"),
+      // Meister: hat read UND manage -> kein Empfänger
+      {
+        id: "m1",
+        name: "Meister",
+        roles: [
+          {
+            role: {
+              permissions: [
+                { permission: { key: "anweisungen:read" } },
+                { permission: { key: "anweisungen:manage" } },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+    const service = new ArbeitsanweisungenService(prisma as never, makeStorage() as never);
+    const result = await service.create(
+      makeUser({ rollen: [Rolle.MEISTER] }),
+      { titel: "x", text: "y", gewerkId: "g1" },
+      undefined,
+    );
+    expect(result.anzahlEmpfaenger).toBe(1);
+  });
+
+  it("ungelesen: Verwalter (kein Leserecht) erhält keine Popups", async () => {
     const prisma = makePrisma();
     const service = new ArbeitsanweisungenService(prisma as never, makeStorage() as never);
-    const result = await service.ungelesenForUser(makeUser({ gewerkeSichtbarkeit: [] }));
+    // Meister: nur manage, kein read → kein Empfänger.
+    const result = await service.ungelesenForUser(
+      makeUser({ permissions: ["anweisungen:manage"] }),
+    );
     expect(result).toEqual([]);
     expect(prisma.arbeitsanweisung.findMany).not.toHaveBeenCalled();
   });
 
-  it("ungelesen: filtert bereits quittierte heraus", async () => {
+  it("ungelesen: leere Gewerk-Sichtbarkeit ergibt keine Popups", async () => {
     const prisma = makePrisma();
+    const service = new ArbeitsanweisungenService(prisma as never, makeStorage() as never);
+    const result = await service.ungelesenForUser(
+      makeUser({ permissions: ["anweisungen:read"], gewerkeSichtbarkeit: [] }),
+    );
+    expect(result).toEqual([]);
+    expect(prisma.arbeitsanweisung.findMany).not.toHaveBeenCalled();
+  });
+
+  it("ungelesen: liefert die vom Server gefilterten ungelesenen Anweisungen", async () => {
+    const prisma = makePrisma();
+    // Der Lesestatus-Filter passiert per DB-Query; der Mock liefert nur Ungelesene.
     prisma.arbeitsanweisung.findMany.mockResolvedValue([
-      makeAnweisung({
-        id: "gelesen",
-        quittungen: [{ gelesenAm: new Date() }],
-        _count: { quittungen: 1 },
-      }),
       makeAnweisung({ id: "ungelesen", quittungen: [], _count: { quittungen: 0 } }),
     ]);
     const service = new ArbeitsanweisungenService(prisma as never, makeStorage() as never);
-    const result = await service.ungelesenForUser(makeUser());
+    const result = await service.ungelesenForUser(makeUser({ permissions: ["anweisungen:read"] }));
     expect(result.map((a) => a.id)).toEqual(["ungelesen"]);
+    // Die Query fordert nur nicht-quittierte Anweisungen an.
+    expect(prisma.arbeitsanweisung.findMany.mock.calls[0][0].where.quittungen).toEqual({
+      none: { userId: "user-1" },
+    });
   });
 
   it("quittieren wirft 404, wenn Anweisung nicht sichtbar", async () => {
@@ -121,8 +181,8 @@ describe("ArbeitsanweisungenService", () => {
     const prisma = makePrisma();
     prisma.arbeitsanweisung.findFirst.mockResolvedValue(makeAnweisung());
     prisma.user.findMany.mockResolvedValue([
-      { id: "u1", name: "Anna" },
-      { id: "u2", name: "Bea" },
+      empfaengerUser("u1", "Anna"),
+      empfaengerUser("u2", "Bea"),
     ]);
     prisma.arbeitsanweisungQuittung.findMany.mockResolvedValue([
       { userId: "u1", gelesenAm: new Date() },

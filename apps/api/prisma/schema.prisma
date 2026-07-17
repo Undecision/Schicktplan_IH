@@ -149,6 +149,7 @@ model Fachbereich {
 
   eintraege        Schichtbucheintrag[]
   technischePlaetze TechnischerPlatz[]
+  arbeitsanweisungen Arbeitsanweisung[]
 
   @@map("fachbereiche")
 }
@@ -452,6 +453,10 @@ model Arbeitsanweisung {
   gewerkId String @db.Uuid
   gewerk   Gewerk @relation(fields: [gewerkId], references: [id])
 
+  /// Optionaler Fachbereich (filter-/durchsuchbar).
+  fachbereichId String?      @db.Uuid
+  fachbereich   Fachbereich? @relation(fields: [fachbereichId], references: [id])
+
   /// Optionale Ziel-Schicht (nur informativer Kontext, keine Zugriffsbeschränkung).
   schichtId String?            @db.Uuid
   schicht   SchichtDefinition? @relation(fields: [schichtId], references: [id])
@@ -471,6 +476,7 @@ model Arbeitsanweisung {
   quittungen ArbeitsanweisungQuittung[]
 
   @@index([gewerkId])
+  @@index([fachbereichId])
   @@index([erstellerId])
   @@map("arbeitsanweisungen")
 }

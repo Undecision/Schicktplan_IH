@@ -3,6 +3,7 @@ import type { ArbeitsanweisungListItem } from "@schichtbuch/shared";
 
 export const ANWEISUNG_INCLUDE = {
   gewerk: { select: { id: true, name: true } },
+  fachbereich: { select: { id: true, name: true } },
   schicht: { select: { id: true, name: true } },
   ersteller: { select: { id: true, name: true } },
 } satisfies Prisma.ArbeitsanweisungInclude;
@@ -29,6 +30,9 @@ export function toAnweisungListItem(
     titel: anweisung.titel,
     text: anweisung.text,
     gewerk: { id: anweisung.gewerk.id, name: anweisung.gewerk.name },
+    fachbereich: anweisung.fachbereich
+      ? { id: anweisung.fachbereich.id, name: anweisung.fachbereich.name }
+      : null,
     schicht: anweisung.schicht ? { id: anweisung.schicht.id, name: anweisung.schicht.name } : null,
     ersteller: { id: anweisung.ersteller.id, name: anweisung.ersteller.name },
     anhang: anweisung.anhangObjectKey

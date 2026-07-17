@@ -22,6 +22,12 @@ export class CreateArbeitsanweisungDto {
   @IsUUID("4")
   gewerkId!: string;
 
+  @ApiPropertyOptional({ description: "Optionaler Fachbereich." })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null && value !== "")
+  @IsUUID("4")
+  fachbereichId?: string | null;
+
   @ApiPropertyOptional({ description: "Optionale Ziel-Schicht." })
   @IsOptional()
   @ValidateIf((_, value) => value !== null && value !== "")
