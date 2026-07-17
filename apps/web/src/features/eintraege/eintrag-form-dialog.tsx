@@ -320,7 +320,7 @@ export function EintragFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEdit
@@ -335,17 +335,14 @@ export function EintragFormDialog({
           </Alert>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3" noValidate>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
             <Field label="Datum" error={errors.datum?.message}>
               <Input type="date" {...register("datum")} />
             </Field>
             <Field label="Uhrzeit" error={errors.uhrzeit?.message}>
               <Input type="time" {...register("uhrzeit")} />
             </Field>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <SelectField
               control={control}
               name="schichtId"
@@ -374,9 +371,6 @@ export function EintragFormDialog({
               options={technischePlaetzeGefiltert}
               error={errors.technischerPlatzId?.message}
             />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <EnumSelectField
               control={control}
               name="prioritaet"
@@ -394,37 +388,34 @@ export function EintragFormDialog({
           </div>
 
           {istStoerung ? (
-            <>
+            <div className="grid gap-3 md:grid-cols-3">
               <Field label="Störung" error={errors.stoerung?.message}>
-                <Textarea {...register("stoerung")} />
+                <Textarea rows={4} {...register("stoerung")} />
               </Field>
               <Field label="Ursache" error={errors.ursache?.message}>
-                <Textarea {...register("ursache")} />
+                <Textarea rows={4} {...register("ursache")} />
               </Field>
               <Field label="Korrekturmaßnahme" error={errors.korrekturmassnahme?.message}>
-                <Textarea {...register("korrekturmassnahme")} />
+                <Textarea rows={4} {...register("korrekturmassnahme")} />
               </Field>
-            </>
+            </div>
           ) : (
             <Field label="Beschreibung" error={errors.beschreibung?.message}>
-              <Textarea {...register("beschreibung")} />
+              <Textarea rows={3} {...register("beschreibung")} />
             </Field>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <Field label="SAP-IH-Auftrag (optional)" error={errors.sapIhAuftrag?.message}>
               <Input placeholder="700123456" {...register("sapIhAuftrag")} />
             </Field>
             <Field label="EasyFlow-TAG (optional)" error={errors.easyFlowTag?.message}>
               <Input placeholder="PW4-M-1023" {...register("easyFlowTag")} />
             </Field>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Bearbeitungsbeginn (optional)" error={errors.bearbeitungBeginn?.message}>
+            <Field label="Bearbeitungsbeginn (opt.)" error={errors.bearbeitungBeginn?.message}>
               <Input type="datetime-local" {...register("bearbeitungBeginn")} />
             </Field>
-            <Field label="Bearbeitungsende (optional)" error={errors.bearbeitungEnde?.message}>
+            <Field label="Bearbeitungsende (opt.)" error={errors.bearbeitungEnde?.message}>
               <Input type="datetime-local" {...register("bearbeitungEnde")} />
             </Field>
           </div>
