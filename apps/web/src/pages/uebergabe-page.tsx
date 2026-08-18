@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import {
@@ -6,6 +6,8 @@ import {
   UebergabeStatus,
   type UebergabeFilter,
 } from "@schichtbuch/shared";
+import { useAuth } from "@/features/auth/auth-context";
+import type { SchichtOption } from "@/features/eintraege/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -26,9 +28,44 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useFormOptions } from "@/features/eintraege/queries";
-import { useGeneriereUebergabe, useUebergaben } from "@/features/uebergaben/queries";
+import { useGeneriereUebergabenMehrere, useUebergaben } from "@/features/uebergaben/queries";
 
 const ALL = "__all__";
+
+/** Minuten seit Mitternacht aus "HH:MM". */
+function hhmmZuMinuten(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return (h ?? 0) * 60 + (m ?? 0);
+}
+
+/**
+ * Ermittelt die zur aktuellen Uhrzeit passende Schicht. Über-Mitternacht-
+ * Schichten (Endzeit ≤ Startzeit) werden korrekt berücksichtigt.
+ */
+function aktiveSchichtId(schichten: SchichtOption[], jetzt: Date): string {
+  const minuten = jetzt.getHours() * 60 + jetzt.getMinutes();
+  for (const schicht of schichten) {
+    const start = hhmmZuMinuten(schicht.startzeit);
+    const ende = hhmmZuMinuten(schicht.endzeit);
+    if (start === ende) continue;
+    const imFenster =
+      start < ende ? minuten >= start && minuten < ende : minuten >= start || minuten < ende;
+    if (imFenster) return schicht.id;
+  }
+  return "";
+}
+
+/**
+ * Bei genau einem zugeordneten Gewerk wird dieses vorausgewählt; bei mehreren
+ * (oder voller Sichtbarkeit) bleibt die Auswahl offen ("Alle").
+ */
+function zugeordnetesGewerkId(
+  gewerke: { id: string; name: string }[],
+  sichtbarkeit: string[],
+): string {
+  if (sichtbarkeit.length !== 1) return "";
+  return gewerke.find((g) => g.name === sichtbarkeit[0])?.id ?? "";
+}
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -82,7 +119,12 @@ export function UebergabePage() {
         </Button>
       </div>
 
-      {showGen && <GenerierenPanel onDone={(id) => navigate(`/uebergabe/${id}`)} />}
+      {showGen && (
+        <GenerierenPanel
+          onDone={(id) => navigate(`/uebergabe/${id}`)}
+          onBulkDone={() => setShowGen(false)}
+        />
+      )}
 
       <div className="rounded-lg border border-border bg-card">
         <Table>
@@ -141,24 +183,52 @@ export function UebergabePage() {
   );
 }
 
-function GenerierenPanel({ onDone }: { onDone: (id: string) => void }) {
+function GenerierenPanel({
+  onDone,
+  onBulkDone,
+}: {
+  onDone: (id: string) => void;
+  onBulkDone: () => void;
+}) {
   const { data: options } = useFormOptions();
-  const generieren = useGeneriereUebergabe();
+  const { user } = useAuth();
+  const generieren = useGeneriereUebergabenMehrere();
   const heute = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const [datum, setDatum] = useState(heute);
   const [schichtId, setSchichtId] = useState("");
   const [gewerkId, setGewerkId] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const vorbelegt = useRef(false);
+
+  // Aktuelle Schicht (nach Uhrzeit) und zugeordnetes Gewerk einmalig vorbelegen,
+  // sobald die Optionen geladen sind. Danach bleibt die Auswahl des Nutzers erhalten.
+  useEffect(() => {
+    if (vorbelegt.current || !options) return;
+    setSchichtId(aktiveSchichtId(options.schichten, new Date()));
+    setGewerkId(zugeordnetesGewerkId(options.gewerke, user?.gewerkeSichtbarkeit ?? []));
+    vorbelegt.current = true;
+  }, [options, user]);
+
+  const anzahlSchichten = schichtId ? 1 : (options?.schichten.length ?? 0);
+  const anzahlGewerke = gewerkId
+    ? 1
+    : ((user?.gewerkeSichtbarkeit.length || options?.gewerke.length) ?? 0);
+  const anzahl = anzahlSchichten * anzahlGewerke;
+  const istSammel = !schichtId || !gewerkId;
 
   async function submit() {
     setError(null);
-    if (!schichtId || !gewerkId) {
-      setError("Bitte Schicht und Gewerk wählen.");
-      return;
-    }
     try {
-      const result = await generieren.mutateAsync({ datum, schichtId, gewerkId });
-      onDone(result.id);
+      const result = await generieren.mutateAsync({
+        datum,
+        schichtId: schichtId || undefined,
+        gewerkId: gewerkId || undefined,
+      });
+      if (result.uebergaben.length === 1 && result.uebergaben[0]) {
+        onDone(result.uebergaben[0].id);
+      } else {
+        onBulkDone();
+      }
     } catch (e) {
       const msg = (e as { response?: { data?: { message?: string } } }).response?.data?.message;
       setError(msg ?? "Erstellung fehlgeschlagen.");
@@ -192,6 +262,9 @@ function GenerierenPanel({ onDone }: { onDone: (id: string) => void }) {
         </Button>
         {error && <p className="w-full text-sm text-destructive">{error}</p>}
         <p className="w-full text-xs text-muted-foreground">
+          {istSammel && anzahl > 1
+            ? `„Alle" erzeugt ${anzahl} Übergaben (alle ausgewählten Schichten × Gewerke) für den Tag. `
+            : ""}
           Offene Störungen und laufende Arbeiten der Schicht werden automatisch übernommen.
         </p>
       </CardContent>

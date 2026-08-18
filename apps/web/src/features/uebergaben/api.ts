@@ -1,5 +1,7 @@
 import type {
   GeneriereUebergabeRequest,
+  GeneriereUebergabenMehrereRequest,
+  GeneriereUebergabenMehrereResult,
   UebergabeDetail,
   UebergabeFilter,
   UebergabeListItem,
@@ -21,6 +23,16 @@ export async function generiereUebergabe(
   payload: GeneriereUebergabeRequest,
 ): Promise<UebergabeDetail> {
   const { data } = await apiClient.post<UebergabeDetail>("/uebergaben/generieren", payload);
+  return data;
+}
+
+export async function generiereUebergabenMehrere(
+  payload: GeneriereUebergabenMehrereRequest,
+): Promise<GeneriereUebergabenMehrereResult> {
+  const { data } = await apiClient.post<GeneriereUebergabenMehrereResult>(
+    "/uebergaben/generieren-mehrere",
+    payload,
+  );
   return data;
 }
 

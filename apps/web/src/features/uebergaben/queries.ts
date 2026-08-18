@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
-  GeneriereUebergabeRequest,
+  GeneriereUebergabenMehrereRequest,
   UebergabeFilter,
   UpdateUebergabeRequest,
 } from "@schichtbuch/shared";
 import {
   fetchUebergabe,
   fetchUebergaben,
-  generiereUebergabe,
+  generiereUebergabenMehrere,
   uebergebenUebergabe,
   updateUebergabe,
 } from "./api";
@@ -29,10 +29,10 @@ export function useUebergabe(id: string | undefined) {
   });
 }
 
-export function useGeneriereUebergabe() {
+export function useGeneriereUebergabenMehrere() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: GeneriereUebergabeRequest) => generiereUebergabe(payload),
+    mutationFn: (payload: GeneriereUebergabenMehrereRequest) => generiereUebergabenMehrere(payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: UEBERGABEN_KEY }),
   });
 }

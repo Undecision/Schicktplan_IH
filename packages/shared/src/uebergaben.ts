@@ -52,6 +52,23 @@ export interface GeneriereUebergabeRequest {
   gewerkId: string;
 }
 
+/**
+ * Sammel-Erzeugung: leere schichtId bzw. gewerkId bedeutet "Alle" – es werden
+ * dann alle aktiven Schichten des Tages bzw. alle für den Nutzer sichtbaren
+ * Gewerke als Kombinationen erzeugt (idempotent).
+ */
+export interface GeneriereUebergabenMehrereRequest {
+  datum: string;
+  /** Leer = alle aktiven Schichten des Tages. */
+  schichtId?: string;
+  /** Leer = alle für den Nutzer sichtbaren Gewerke. */
+  gewerkId?: string;
+}
+
+export interface GeneriereUebergabenMehrereResult {
+  uebergaben: UebergabeListItem[];
+}
+
 export interface UpdateUebergabeRequest {
   besondereHinweise?: string | null;
   sicherheitshinweise?: string | null;

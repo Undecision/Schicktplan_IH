@@ -9,6 +9,7 @@ import { UebergabenService } from "./uebergaben.service";
 import { PdfService } from "../pdf/pdf.service";
 import { renderUebergabeHtml } from "./uebergabe-pdf.template";
 import { GeneriereUebergabeDto } from "./dto/generiere-uebergabe.dto";
+import { GeneriereUebergabenMehrereDto } from "./dto/generiere-uebergaben-mehrere.dto";
 import { UpdateUebergabeDto } from "./dto/update-uebergabe.dto";
 import { UebergebenDto } from "./dto/uebergeben.dto";
 import { ListUebergabenQueryDto } from "./dto/list-uebergaben.query.dto";
@@ -38,6 +39,16 @@ export class UebergabenController {
   @Post("generieren")
   generieren(@CurrentUser() user: AuthenticatedUser, @Body() dto: GeneriereUebergabeDto) {
     return this.service.generieren(user, dto);
+  }
+
+  @Audited("Schichtuebergabe")
+  @RequirePermissions("uebergaben:manage")
+  @Post("generieren-mehrere")
+  generierenMehrere(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: GeneriereUebergabenMehrereDto,
+  ) {
+    return this.service.generierenMehrere(user, dto);
   }
 
   @Audited("Schichtuebergabe")

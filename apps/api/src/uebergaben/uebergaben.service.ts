@@ -10,6 +10,7 @@ import {
   type UebergabePayload,
 } from "./uebergabe.mapper";
 import { GeneriereUebergabeDto } from "./dto/generiere-uebergabe.dto";
+import { GeneriereUebergabenMehrereDto } from "./dto/generiere-uebergaben-mehrere.dto";
 import { UpdateUebergabeDto } from "./dto/update-uebergabe.dto";
 import { UebergebenDto } from "./dto/uebergeben.dto";
 import { ListUebergabenQueryDto } from "./dto/list-uebergaben.query.dto";
@@ -66,6 +67,66 @@ export class UebergabenService {
       include: UEBERGABE_INCLUDE,
     });
     return this.findOne(user, uebergabe.id);
+  }
+
+  /**
+   * Sammel-Erzeugung: leere schichtId/gewerkId werden zu "Alle" expandiert
+   * (alle aktiven Schichten des Tages bzw. alle für den Nutzer sichtbaren
+   * Gewerke). Jede Kombination wird idempotent per upsert erzeugt.
+   */
+  async generierenMehrere(user: AuthenticatedUser, dto: GeneriereUebergabenMehrereDto) {
+    const datum = new Date(dto.datum);
+
+    const schichtIds = dto.schichtId
+      ? [dto.schichtId]
+      : (
+          await this.prisma.schichtDefinition.findMany({
+            where: { deletedAt: null, aktiv: true },
+            select: { id: true },
+          })
+        ).map((s) => s.id);
+
+    let gewerkIds: string[];
+    if (dto.gewerkId) {
+      await this.assertGewerkVisibleById(user, dto.gewerkId);
+      gewerkIds = [dto.gewerkId];
+    } else {
+      const gewerke = await this.prisma.gewerk.findMany({
+        where: {
+          deletedAt: null,
+          aktiv: true,
+          ...(user.gewerkeSichtbarkeit.length > 0
+            ? { name: { in: user.gewerkeSichtbarkeit } }
+            : {}),
+        },
+        select: { id: true },
+      });
+      gewerkIds = gewerke.map((g) => g.id);
+    }
+
+    const ids: string[] = [];
+    for (const schichtId of schichtIds) {
+      for (const gewerkId of gewerkIds) {
+        const uebergabe = await this.prisma.schichtuebergabe.upsert({
+          where: { datum_schichtId_gewerkId: { datum, schichtId, gewerkId } },
+          create: { datum, schichtId, gewerkId },
+          update: {},
+          select: { id: true },
+        });
+        ids.push(uebergabe.id);
+      }
+    }
+
+    const uebergaben = await this.prisma.schichtuebergabe.findMany({
+      where: { id: { in: ids } },
+      include: UEBERGABE_INCLUDE,
+      orderBy: [{ schicht: { name: "asc" } }, { gewerk: { name: "asc" } }],
+    });
+    return {
+      uebergaben: await Promise.all(
+        uebergaben.map(async (u) => toUebergabeListItem(u, await this.kennzahlen(u))),
+      ),
+    };
   }
 
   async update(user: AuthenticatedUser, id: string, dto: UpdateUebergabeDto) {
