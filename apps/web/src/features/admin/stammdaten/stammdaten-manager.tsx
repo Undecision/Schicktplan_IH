@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoreVertical, Plus } from "lucide-react";
+import { FileUp, MoreVertical, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -21,6 +21,7 @@ import {
 import type { StammdatenResource } from "./config";
 import { useStammdaten, useUpdateStammdatum, type StammdatumRow } from "./queries";
 import { StammdatumFormDialog } from "./stammdatum-form-dialog";
+import { TechnischePlaetzeImportDialog } from "./technische-plaetze-import-dialog";
 
 function renderValue(row: StammdatumRow, key: string, type: string) {
   const value = row[key];
@@ -36,6 +37,7 @@ export function StammdatenManager({ resource }: { resource: StammdatenResource }
   const updateMutation = useUpdateStammdatum(resource.endpoint);
 
   const [formOpen, setFormOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<StammdatumRow | undefined>(undefined);
 
   function openCreate() {
@@ -72,6 +74,12 @@ export function StammdatenManager({ resource }: { resource: StammdatenResource }
               Inaktive anzeigen
             </Label>
           </div>
+          {resource.importierbar && (
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <FileUp className="h-4 w-4" />
+              Excel-Import
+            </Button>
+          )}
           <Button onClick={openCreate}>
             <Plus className="h-4 w-4" />
             Neu
@@ -153,6 +161,10 @@ export function StammdatenManager({ resource }: { resource: StammdatenResource }
         onOpenChange={setFormOpen}
         row={editingRow}
       />
+
+      {resource.importierbar && (
+        <TechnischePlaetzeImportDialog open={importOpen} onOpenChange={setImportOpen} />
+      )}
     </div>
   );
 }

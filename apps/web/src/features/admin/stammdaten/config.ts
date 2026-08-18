@@ -24,6 +24,8 @@ export interface StammdatenResource {
   /** Feld für die Duplikat-/Anzeige-Identität (z.B. "name" oder "bezeichnung"). */
   primaryField: string;
   fields: StammdatenField[];
+  /** true = bietet zusätzlich einen Excel-Import an (nur technische Plätze). */
+  importierbar?: boolean;
 }
 
 export const STAMMDATEN_RESOURCES: Record<string, StammdatenResource> = {
@@ -46,6 +48,7 @@ export const STAMMDATEN_RESOURCES: Record<string, StammdatenResource> = {
     labelSingular: "Technischer Platz",
     labelPlural: "Technische Plätze",
     primaryField: "bezeichnung",
+    importierbar: true,
     fields: [
       { key: "bezeichnung", label: "Bezeichnung", type: "text" },
       { key: "code", label: "Code", type: "text" },

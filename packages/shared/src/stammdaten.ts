@@ -53,3 +53,33 @@ export interface CreateSchichtDefinitionRequest {
 
 /** Zeitformat "HH:MM" (24h) für Schicht-Definitionen. */
 export const ZEIT_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+// --- Excel-Import Technische Plätze (P2.1) ---
+
+/** Ein Fehler bezogen auf eine einzelne Zeile der Import-Datei. */
+export interface TechnischePlaetzeImportZeilenfehler {
+  /** 1-basierte Zeilennummer in der Excel-Datei (inkl. Kopfzeile). */
+  zeile: number;
+  /** Der Code der Zeile, sofern vorhanden. */
+  code: string | null;
+  meldung: string;
+}
+
+/** Ergebnis eines Excel-Imports technischer Plätze. */
+export interface TechnischePlaetzeImportResult {
+  /** Anzahl der geprüften Datenzeilen (ohne leere Zeilen). */
+  verarbeitet: number;
+  angelegt: number;
+  aktualisiert: number;
+  /** Zeilen, die wegen eines Fehlers übersprungen wurden. */
+  uebersprungen: number;
+  fehler: TechnischePlaetzeImportZeilenfehler[];
+}
+
+/** Erwartete Spaltenüberschriften der Import-Vorlage (für Frontend-Hinweise). */
+export const TECHNISCHE_PLAETZE_IMPORT_SPALTEN = [
+  "Bezeichnung",
+  "Code",
+  "Fachbereich",
+  "SAP-synchronisierbar",
+] as const;
