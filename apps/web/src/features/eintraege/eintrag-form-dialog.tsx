@@ -1,16 +1,19 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { ImagePlus, X } from "lucide-react";
 import {
   EINTRAG_STATUS,
   EINTRAG_TYP_LABELS,
   EintragStatus,
   EintragTyp,
+  EASYFLOW_TAG_HINT,
   EASYFLOW_TAG_REGEX,
   PRIORITAETEN,
   PRIORITAET_LABELS,
   Prioritaet,
+  SAP_AUFTRAG_HINT,
   SAP_AUFTRAG_REGEX,
   STATUS_LABELS,
   type SchichtbucheintragDetail,
@@ -38,6 +41,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/auth-context";
 import { useCreateEintrag, useFormOptions, useUpdateEintrag } from "./queries";
+import { uploadAnhang } from "./anhaenge-api";
 
 /** Ermittelt die aktuell laufende Schicht anhand der Uhrzeit (mit Mitternachts-Überlauf). */
 function aktuelleSchichtId(
@@ -84,19 +88,44 @@ const formSchema = z
     sapIhAuftrag: z
       .string()
       .optional()
-      .refine(
-        (v) => !v || SAP_AUFTRAG_REGEX.test(v),
-        "SAP-IH-Auftrag: 6–12 Ziffern (z.B. 700123456).",
-      ),
+      .refine((v) => !v || SAP_AUFTRAG_REGEX.test(v), SAP_AUFTRAG_HINT),
     easyFlowTag: z
       .string()
       .optional()
-      .refine((v) => !v || EASYFLOW_TAG_REGEX.test(v), "EasyFlow-TAG-Format, z.B. PW4-M-1023."),
+      .refine((v) => !v || EASYFLOW_TAG_REGEX.test(v), EASYFLOW_TAG_HINT),
     bearbeitungBeginn: z.string().optional(),
     bearbeitungEnde: z.string().optional(),
     schlagwortIds: z.array(z.string()),
   })
   .superRefine((val, ctx) => {
+    // Bearbeitungsbeginn ist Pflicht (Datum wird vorbelegt, bleibt änderbar).
+    if (!val.bearbeitungBeginn?.trim()) {
+      ctx.addIssue({
+        path: ["bearbeitungBeginn"],
+        code: z.ZodIssueCode.custom,
+        message: "Bearbeitungsbeginn ist erforderlich",
+      });
+    }
+    // Bearbeitungsende ist Pflicht, sobald der Status „Erledigt" ist.
+    if (val.status === EintragStatus.ERLEDIGT && !val.bearbeitungEnde?.trim()) {
+      ctx.addIssue({
+        path: ["bearbeitungEnde"],
+        code: z.ZodIssueCode.custom,
+        message: "Bei Status Erledigt ist das Bearbeitungsende erforderlich",
+      });
+    }
+    // Ende darf nicht vor dem Beginn liegen.
+    if (
+      val.bearbeitungBeginn?.trim() &&
+      val.bearbeitungEnde?.trim() &&
+      new Date(val.bearbeitungEnde) < new Date(val.bearbeitungBeginn)
+    ) {
+      ctx.addIssue({
+        path: ["bearbeitungEnde"],
+        code: z.ZodIssueCode.custom,
+        message: "Das Bearbeitungsende darf nicht vor dem Beginn liegen",
+      });
+    }
     if (val.typ === EintragTyp.STOERUNG) {
       if (!val.stoerung?.trim()) {
         ctx.addIssue({
@@ -147,6 +176,7 @@ function toDefaults(
     // Neuer Eintrag: Datum + Uhrzeit automatisch auf „jetzt" (Schicht/Gewerk
     // werden nach dem Laden der Optionen ergänzt).
     const now = new Date();
+    const nowLocal = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
     return {
       typ: neuerTyp,
       datum: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
@@ -163,7 +193,8 @@ function toDefaults(
       korrekturmassnahme: "",
       sapIhAuftrag: "",
       easyFlowTag: "",
-      bearbeitungBeginn: "",
+      // Bearbeitungsbeginn wird auf „jetzt" vorbelegt (Pflichtfeld, änderbar).
+      bearbeitungBeginn: nowLocal,
       bearbeitungEnde: "",
       schlagwortIds: [],
     };
@@ -213,6 +244,13 @@ export function EintragFormDialog({
   const createMutation = useCreateEintrag();
   const updateMutation = useUpdateEintrag();
 
+  // Bilder/Dateien, die direkt beim Anlegen angehängt werden (nur im Neu-Modus).
+  const [dateien, setDateien] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Merkt sich die Id eines bereits angelegten Eintrags, damit bei einem
+  // fehlgeschlagenen Anhang-Upload ein erneuter Versuch nicht doppelt anlegt.
+  const createdIdRef = useRef<string | null>(null);
+
   const {
     register,
     handleSubmit,
@@ -228,8 +266,15 @@ export function EintragFormDialog({
   });
 
   useEffect(() => {
-    if (open) reset(toDefaults(eintrag, typ));
+    if (open) {
+      reset(toDefaults(eintrag, typ));
+      setDateien([]);
+      createdIdRef.current = null;
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   }, [open, eintrag, typ, reset]);
+
+  const statusWert = useWatch({ control, name: "status" });
 
   // Beim Neuanlegen Schicht (nach Uhrzeit) und Gewerk (nach Nutzer) vorbelegen,
   // sobald die Optionen geladen sind – ohne bereits getroffene Auswahl zu überschreiben.
@@ -307,7 +352,18 @@ export function EintragFormDialog({
       if (isEdit && eintrag) {
         await updateMutation.mutateAsync({ id: eintrag.id, payload });
       } else {
-        await createMutation.mutateAsync(payload);
+        // Eintrag nur einmal anlegen; bei einem erneuten Versuch (z.B. nach
+        // fehlgeschlagenem Upload) die bereits erzeugte Id wiederverwenden.
+        let neueId = createdIdRef.current;
+        if (!neueId) {
+          const erstellt = await createMutation.mutateAsync(payload);
+          neueId = erstellt.id;
+          createdIdRef.current = neueId;
+        }
+        // Angehängte Bilder/Dateien direkt hochladen.
+        for (const datei of dateien) {
+          await uploadAnhang(neueId, datei);
+        }
       }
       onOpenChange(false);
     } catch (error) {
@@ -407,18 +463,71 @@ export function EintragFormDialog({
 
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <Field label="SAP-IH-Auftrag (optional)" error={errors.sapIhAuftrag?.message}>
-              <Input placeholder="700123456" {...register("sapIhAuftrag")} />
+              <Input inputMode="numeric" placeholder="700123456" {...register("sapIhAuftrag")} />
             </Field>
             <Field label="EasyFlow-TAG (optional)" error={errors.easyFlowTag?.message}>
-              <Input placeholder="PW4-M-1023" {...register("easyFlowTag")} />
+              <Input inputMode="numeric" placeholder="123456" {...register("easyFlowTag")} />
             </Field>
-            <Field label="Bearbeitungsbeginn (opt.)" error={errors.bearbeitungBeginn?.message}>
+            <Field label="Bearbeitungsbeginn" error={errors.bearbeitungBeginn?.message}>
               <Input type="datetime-local" {...register("bearbeitungBeginn")} />
             </Field>
-            <Field label="Bearbeitungsende (opt.)" error={errors.bearbeitungEnde?.message}>
+            <Field
+              label={
+                statusWert === EintragStatus.ERLEDIGT
+                  ? "Bearbeitungsende (Pflicht)"
+                  : "Bearbeitungsende (optional)"
+              }
+              error={errors.bearbeitungEnde?.message}
+            >
               <Input type="datetime-local" {...register("bearbeitungEnde")} />
             </Field>
           </div>
+
+          {!isEdit && (
+            <div className="space-y-1.5">
+              <Label>Bilder / Anhänge (optional)</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => {
+                    const gewaehlt = Array.from(e.target.files ?? []);
+                    if (gewaehlt.length) setDateien((prev) => [...prev, ...gewaehlt]);
+                    e.target.value = "";
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <ImagePlus className="h-4 w-4" />
+                  Bild anhängen
+                </Button>
+                {dateien.map((datei, index) => (
+                  <span
+                    key={`${datei.name}-${index}`}
+                    className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs"
+                  >
+                    <span className="max-w-[10rem] truncate">{datei.name}</span>
+                    <button
+                      type="button"
+                      className="text-muted-foreground hover:text-destructive"
+                      aria-label="Anhang entfernen"
+                      onClick={() => setDateien((prev) => prev.filter((_, i) => i !== index))}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label>Schlagwörter (optional)</Label>

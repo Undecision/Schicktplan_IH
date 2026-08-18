@@ -61,12 +61,12 @@ export const STATUS_LABELS: Record<EintragStatus, string> = {
  * Format-Validierung der Referenzfelder (v1: manuelle Eingabe, siehe
  * Entscheidungs-Log §0). Bewusst tolerant, aber strukturiert.
  */
-// SAP-IH-Auftrag, z.B. 700123456 (6–12 Ziffern).
-export const SAP_AUFTRAG_REGEX = /^\d{6,12}$/;
-export const SAP_AUFTRAG_HINT = "SAP-IH-Auftrag: 6–12 Ziffern (z.B. 700123456).";
-// EasyFlow-TAG, z.B. PW4-M-1023.
-export const EASYFLOW_TAG_REGEX = /^[A-Z0-9]+-[A-Z]+-\d+$/i;
-export const EASYFLOW_TAG_HINT = "EasyFlow-TAG-Format, z.B. PW4-M-1023.";
+// SAP-IH-Auftrag: genau 9 Ziffern (z.B. 700123456).
+export const SAP_AUFTRAG_REGEX = /^\d{9}$/;
+export const SAP_AUFTRAG_HINT = "SAP-IH-Auftrag: genau 9 Ziffern (z.B. 700123456).";
+// EasyFlow-TAG: genau 6 Ziffern (z.B. 123456).
+export const EASYFLOW_TAG_REGEX = /^\d{6}$/;
+export const EASYFLOW_TAG_HINT = "EasyFlow-TAG: genau 6 Ziffern (z.B. 123456).";
 
 export interface Referenz {
   id: string;
