@@ -7,6 +7,7 @@ import type {
 import {
   deleteBericht,
   fetchBericht,
+  fetchBerichtHistorie,
   fetchBerichte,
   freigebenBericht,
   generiereBerichte,
@@ -59,5 +60,13 @@ export function useDeleteBericht() {
   return useMutation({
     mutationFn: (id: string) => deleteBericht(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: BERICHTE_KEY }),
+  });
+}
+
+export function useBerichtHistorie(id: string | undefined) {
+  return useQuery({
+    queryKey: [...BERICHTE_KEY, "historie", id],
+    queryFn: () => fetchBerichtHistorie(id as string),
+    enabled: !!id,
   });
 }

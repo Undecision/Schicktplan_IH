@@ -2,6 +2,7 @@ import type {
   GeneriereUebergabeRequest,
   GeneriereUebergabenMehrereRequest,
   GeneriereUebergabenMehrereResult,
+  HistorieEintrag,
   UebergabeDetail,
   UebergabeFilter,
   UebergabeListItem,
@@ -56,6 +57,11 @@ export async function uebergebenUebergabe(
 
 export async function deleteUebergabe(id: string): Promise<void> {
   await apiClient.delete(`/uebergaben/${id}`);
+}
+
+export async function fetchUebergabeHistorie(id: string): Promise<HistorieEintrag[]> {
+  const { data } = await apiClient.get<HistorieEintrag[]>(`/uebergaben/${id}/historie`);
+  return data;
 }
 
 /** Lädt das Übergabe-PDF (RBAC-geschützt) als Blob und öffnet es im neuen Tab. */

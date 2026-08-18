@@ -1,6 +1,7 @@
 import type {
   BerichtFilter,
   GeneriereBerichtRequest,
+  HistorieEintrag,
   SchichtberichtDetail,
   SchichtberichtListItem,
   UpdateBerichtRequest,
@@ -34,6 +35,11 @@ export async function updateBericht(
 
 export async function deleteBericht(id: string): Promise<void> {
   await apiClient.delete(`/berichte/${id}`);
+}
+
+export async function fetchBerichtHistorie(id: string): Promise<HistorieEintrag[]> {
+  const { data } = await apiClient.get<HistorieEintrag[]>(`/berichte/${id}/historie`);
+  return data;
 }
 
 export async function freigebenBericht(id: string): Promise<SchichtberichtDetail> {

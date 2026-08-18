@@ -5,8 +5,14 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
-import { EintragStatus, SchichtberichtStatus, type AuthenticatedUser } from "@schichtbuch/shared";
+import {
+  EintragStatus,
+  SCHICHTBERICHT_STATUS_LABELS,
+  SchichtberichtStatus,
+  type AuthenticatedUser,
+} from "@schichtbuch/shared";
 import { PrismaService } from "../prisma/prisma.service";
+import { baueHistorie, type HistorieFeld } from "../common/historie.util";
 import { EINTRAG_LIST_INCLUDE, toListItem } from "../eintraege/eintrag.mapper";
 import {
   BERICHT_INCLUDE,
@@ -61,6 +67,17 @@ export class BerichteService {
     this.assertGewerkVisible(user, bericht.gewerk.name);
     const eintraege = await this.eintraege(bericht);
     return toBerichtDetail(bericht, eintraege);
+  }
+
+  /** Änderungsverlauf (wer hat wann erstellt/geändert/freigegeben) aus dem Audit-Log. */
+  async historie(user: AuthenticatedUser, id: string) {
+    // Sichtbarkeit erzwingen (wirft 404, falls nicht sichtbar).
+    await this.findOne(user, id);
+    const logs = await this.prisma.auditLog.findMany({
+      where: { entity: "Schichtbericht", entityId: id },
+      orderBy: { createdAt: "desc" },
+    });
+    return baueHistorie(logs, BERICHT_HISTORIE_FELDER);
   }
 
   /**
@@ -229,3 +246,37 @@ function dayRange(datum: Date): { start: Date; end: Date } {
   end.setDate(end.getDate() + 1);
   return { start, end };
 }
+
+/** Für die Historie relevante Felder eines Bericht-Snapshots (before/after). */
+interface BerichtSnapshot {
+  status?: string;
+  besondereEreignisse?: string | null;
+  verantwortlicher?: { name: string } | null;
+  freigegebenVon?: { name: string } | null;
+}
+
+const BERICHT_HISTORIE_FELDER: HistorieFeld<BerichtSnapshot>[] = [
+  {
+    feld: "status",
+    label: "Status",
+    get: (s) =>
+      s.status
+        ? (SCHICHTBERICHT_STATUS_LABELS[s.status as SchichtberichtStatus] ?? s.status)
+        : null,
+  },
+  {
+    feld: "verantwortlicher",
+    label: "Verantwortlicher Schichtführer",
+    get: (s) => s.verantwortlicher?.name ?? null,
+  },
+  {
+    feld: "besondereEreignisse",
+    label: "Besondere Ereignisse",
+    get: (s) => s.besondereEreignisse ?? null,
+  },
+  {
+    feld: "freigegebenVon",
+    label: "Freigegeben von",
+    get: (s) => s.freigegebenVon?.name ?? null,
+  },
+];

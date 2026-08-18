@@ -7,6 +7,7 @@ import type {
 import {
   deleteUebergabe,
   fetchUebergabe,
+  fetchUebergabeHistorie,
   fetchUebergaben,
   generiereUebergabenMehrere,
   uebergebenUebergabe,
@@ -59,5 +60,13 @@ export function useDeleteUebergabe() {
   return useMutation({
     mutationFn: (id: string) => deleteUebergabe(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: UEBERGABEN_KEY }),
+  });
+}
+
+export function useUebergabeHistorie(id: string | undefined) {
+  return useQuery({
+    queryKey: [...UEBERGABEN_KEY, "historie", id],
+    queryFn: () => fetchUebergabeHistorie(id as string),
+    enabled: !!id,
   });
 }

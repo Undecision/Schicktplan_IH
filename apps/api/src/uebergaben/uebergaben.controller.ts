@@ -8,10 +8,11 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   Res,
 } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
-import type { Response } from "express";
+import type { Request, Response } from "express";
 import type { AuthenticatedUser } from "@schichtbuch/shared";
 import { RequirePermissions } from "../auth/decorators/require-permissions.decorator";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
@@ -24,6 +25,10 @@ import { GeneriereUebergabenMehrereDto } from "./dto/generiere-uebergaben-mehrer
 import { UpdateUebergabeDto } from "./dto/update-uebergabe.dto";
 import { UebergebenDto } from "./dto/uebergeben.dto";
 import { ListUebergabenQueryDto } from "./dto/list-uebergaben.query.dto";
+
+interface AuditableRequest extends Request {
+  auditBefore?: unknown;
+}
 
 @ApiTags("uebergaben")
 @Controller("uebergaben")
@@ -43,6 +48,12 @@ export class UebergabenController {
   @Get(":id")
   findOne(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
     return this.service.findOne(user, id);
+  }
+
+  @RequirePermissions("uebergaben:manage")
+  @Get(":id/historie")
+  historie(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
+    return this.service.historie(user, id);
   }
 
   @Audited("Schichtuebergabe")
@@ -65,22 +76,26 @@ export class UebergabenController {
   @Audited("Schichtuebergabe")
   @RequirePermissions("uebergaben:manage")
   @Patch(":id")
-  update(
+  async update(
     @CurrentUser() user: AuthenticatedUser,
     @Param("id") id: string,
     @Body() dto: UpdateUebergabeDto,
+    @Req() request: AuditableRequest,
   ) {
+    request.auditBefore = await this.service.findOne(user, id).catch(() => undefined);
     return this.service.update(user, id, dto);
   }
 
   @Audited("Schichtuebergabe")
   @RequirePermissions("uebergaben:manage")
   @Post(":id/uebergeben")
-  uebergeben(
+  async uebergeben(
     @CurrentUser() user: AuthenticatedUser,
     @Param("id") id: string,
     @Body() dto: UebergebenDto,
+    @Req() request: AuditableRequest,
   ) {
+    request.auditBefore = await this.service.findOne(user, id).catch(() => undefined);
     return this.service.uebergeben(user, id, dto);
   }
 

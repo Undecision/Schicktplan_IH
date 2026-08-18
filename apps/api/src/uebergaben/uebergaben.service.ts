@@ -1,7 +1,13 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
-import { EintragStatus, UebergabeStatus, type AuthenticatedUser } from "@schichtbuch/shared";
+import {
+  EintragStatus,
+  UEBERGABE_STATUS_LABELS,
+  UebergabeStatus,
+  type AuthenticatedUser,
+} from "@schichtbuch/shared";
 import { PrismaService } from "../prisma/prisma.service";
+import { baueHistorie, formatHistorieDatum, type HistorieFeld } from "../common/historie.util";
 import { EINTRAG_LIST_INCLUDE, toListItem } from "../eintraege/eintrag.mapper";
 import {
   UEBERGABE_INCLUDE,
@@ -168,6 +174,16 @@ export class UebergabenService {
     return this.findOne(user, id);
   }
 
+  /** Änderungsverlauf (wer hat wann erstellt/geändert/übergeben) aus dem Audit-Log. */
+  async historie(user: AuthenticatedUser, id: string) {
+    await this.load(user, id);
+    const logs = await this.prisma.auditLog.findMany({
+      where: { entity: "Schichtuebergabe", entityId: id },
+      orderBy: { createdAt: "desc" },
+    });
+    return baueHistorie(logs, UEBERGABE_HISTORIE_FELDER);
+  }
+
   /**
    * Löscht eine Schichtübergabe endgültig. Die abgeleiteten Eintragslisten
    * werden nicht persistiert, daher hat das Löschen keine Auswirkung auf die
@@ -270,3 +286,53 @@ function dayRange(datum: Date): { start: Date; end: Date } {
   end.setDate(end.getDate() + 1);
   return { start, end };
 }
+
+/** Für die Historie relevante Felder eines Übergabe-Snapshots (before/after). */
+interface UebergabeSnapshot {
+  status?: string;
+  besondereHinweise?: string | null;
+  sicherheitshinweise?: string | null;
+  freischaltungen?: string | null;
+  arbeitsgenehmigungen?: string | null;
+  wichtigeTermine?: string | null;
+  uebergebenVon?: { name: string } | null;
+  uebernommenVon?: { name: string } | null;
+  uebergebenAm?: string | null;
+}
+
+const UEBERGABE_HISTORIE_FELDER: HistorieFeld<UebergabeSnapshot>[] = [
+  {
+    feld: "status",
+    label: "Status",
+    get: (s) =>
+      s.status ? (UEBERGABE_STATUS_LABELS[s.status as UebergabeStatus] ?? s.status) : null,
+  },
+  {
+    feld: "sicherheitshinweise",
+    label: "Sicherheitsinformationen",
+    get: (s) => s.sicherheitshinweise ?? null,
+  },
+  { feld: "freischaltungen", label: "Freischaltungen", get: (s) => s.freischaltungen ?? null },
+  {
+    feld: "arbeitsgenehmigungen",
+    label: "Arbeitsgenehmigungen",
+    get: (s) => s.arbeitsgenehmigungen ?? null,
+  },
+  { feld: "wichtigeTermine", label: "Wichtige Termine", get: (s) => s.wichtigeTermine ?? null },
+  {
+    feld: "besondereHinweise",
+    label: "Besondere Hinweise",
+    get: (s) => s.besondereHinweise ?? null,
+  },
+  { feld: "uebergebenVon", label: "Übergebende Person", get: (s) => s.uebergebenVon?.name ?? null },
+  {
+    feld: "uebernommenVon",
+    label: "Übernehmende Person",
+    get: (s) => s.uebernommenVon?.name ?? null,
+  },
+  {
+    feld: "uebergebenAm",
+    label: "Übergeben am",
+    get: (s) => formatHistorieDatum(s.uebergebenAm ?? null),
+  },
+];

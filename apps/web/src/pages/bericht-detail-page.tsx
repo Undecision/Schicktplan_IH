@@ -13,10 +13,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RequirePermission } from "@/features/auth/protected-route";
+import { useAuth } from "@/features/auth/auth-context";
+import { HistorieVerlauf } from "@/components/historie-verlauf";
 import { PrioritaetBadge, StatusBadge } from "@/features/eintraege/badges";
 import { useFormOptions } from "@/features/eintraege/queries";
 import {
   useBericht,
+  useBerichtHistorie,
   useDeleteBericht,
   useFreigebenBericht,
   useUpdateBericht,
@@ -41,7 +44,9 @@ export function BerichtDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: bericht, isLoading, isError } = useBericht(id);
+  const { data: historie = [], isLoading: historieLaedt } = useBerichtHistorie(id);
   const { data: options } = useFormOptions();
+  const { user } = useAuth();
   const update = useUpdateBericht(id ?? "");
   const freigeben = useFreigebenBericht(id ?? "");
   const loeschen = useDeleteBericht();
@@ -63,10 +68,15 @@ export function BerichtDetailPage() {
 
   useEffect(() => {
     if (bericht) {
-      setVerantwortlicherId(bericht.verantwortlicher?.id ?? "");
+      // Verantwortlichen Schichtführer automatisch mit der angemeldeten Person
+      // vorbelegen, solange im Entwurf noch keiner gesetzt ist (bleibt änderbar).
+      const vorbelegt =
+        bericht.verantwortlicher?.id ??
+        (bericht.status === SchichtberichtStatus.ENTWURF ? (user?.id ?? "") : "");
+      setVerantwortlicherId(vorbelegt);
       setBesondere(bericht.besondereEreignisse ?? "");
     }
-  }, [bericht]);
+  }, [bericht, user]);
 
   if (isLoading) return <p className="text-muted-foreground">Lädt…</p>;
   if (isError || !bericht) {
@@ -217,6 +227,8 @@ export function BerichtDetailPage() {
         eintraege={bericht.erledigteEintraege}
         leer="Keine abgeschlossenen Arbeiten."
       />
+
+      <HistorieVerlauf historie={historie} isLoading={historieLaedt} titel="Verlauf des Berichts" />
     </div>
   );
 }

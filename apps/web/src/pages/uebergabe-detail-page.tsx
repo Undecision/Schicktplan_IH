@@ -16,10 +16,12 @@ import {
 } from "@/components/ui/select";
 import { PrioritaetBadge, StatusBadge } from "@/features/eintraege/badges";
 import { useFormOptions } from "@/features/eintraege/queries";
+import { HistorieVerlauf } from "@/components/historie-verlauf";
 import { oeffneUebergabePdf } from "@/features/uebergaben/api";
 import {
   useDeleteUebergabe,
   useUebergabe,
+  useUebergabeHistorie,
   useUebergeben,
   useUpdateUebergabe,
 } from "@/features/uebergaben/queries";
@@ -62,8 +64,9 @@ export function UebergabeDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: u, isLoading, isError, isFetching, refetch } = useUebergabe(id);
+  const { data: historie = [], isLoading: historieLaedt } = useUebergabeHistorie(id);
   const { data: options } = useFormOptions();
-  const { hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
   const update = useUpdateUebergabe(id ?? "");
   const uebergeben = useUebergeben(id ?? "");
   const loeschen = useDeleteUebergabe();
@@ -216,6 +219,15 @@ export function UebergabeDetailPage() {
             <div className="flex flex-wrap items-end gap-3 border-t border-border pt-3">
               <div className="w-64">
                 <label className="mb-1 block text-xs text-muted-foreground">
+                  Übergebende Person
+                </label>
+                <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+                  {user?.name ?? "—"}
+                  <span className="ml-1 text-xs text-muted-foreground">(automatisch)</span>
+                </p>
+              </div>
+              <div className="w-64">
+                <label className="mb-1 block text-xs text-muted-foreground">
                   Übernehmende Person (nächste Schicht)
                 </label>
                 <Select
@@ -255,6 +267,8 @@ export function UebergabeDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      <HistorieVerlauf historie={historie} isLoading={historieLaedt} titel="Verlauf der Übergabe" />
     </div>
   );
 }
