@@ -30,6 +30,8 @@ export interface UebergabeListItem {
   uebergebenAm: string | null;
   offeneStoerungen: number;
   laufendeArbeiten: number;
+  /** In der Schicht abgeschlossene Einträge (Status ERLEDIGT/VERSCHOBEN). */
+  abgeschlosseneEintraege: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -44,6 +46,11 @@ export interface UebergabeDetail extends UebergabeListItem {
   offeneStoerungenListe: SchichtbucheintragListItem[];
   /** Automatisch übernommen: laufende Arbeiten (Status IN_BEARBEITUNG). */
   laufendeArbeitenListe: SchichtbucheintragListItem[];
+  /**
+   * In der Schicht abgeschlossene Einträge (Status ERLEDIGT/VERSCHOBEN). Werden
+   * zur Dokumentation mitgeführt, damit abgearbeitete Punkte nicht wegfallen.
+   */
+  abgeschlosseneListe: SchichtbucheintragListItem[];
 }
 
 export interface GeneriereUebergabeRequest {

@@ -24,7 +24,11 @@ function ref(entity: { id: string; name: string } | null): Referenz | null {
 
 export function toUebergabeListItem(
   uebergabe: UebergabePayload,
-  kennzahlen: { offeneStoerungen: number; laufendeArbeiten: number },
+  kennzahlen: {
+    offeneStoerungen: number;
+    laufendeArbeiten: number;
+    abgeschlosseneEintraege: number;
+  },
 ): UebergabeListItem {
   return {
     id: uebergabe.id,
@@ -39,6 +43,7 @@ export function toUebergabeListItem(
     uebergebenAm: uebergabe.uebergebenAm ? uebergabe.uebergebenAm.toISOString() : null,
     offeneStoerungen: kennzahlen.offeneStoerungen,
     laufendeArbeiten: kennzahlen.laufendeArbeiten,
+    abgeschlosseneEintraege: kennzahlen.abgeschlosseneEintraege,
     createdAt: uebergabe.createdAt.toISOString(),
     updatedAt: uebergabe.updatedAt.toISOString(),
   };
@@ -48,11 +53,13 @@ export function toUebergabeDetail(
   uebergabe: UebergabePayload,
   offeneStoerungenListe: SchichtbucheintragListItem[],
   laufendeArbeitenListe: SchichtbucheintragListItem[],
+  abgeschlosseneListe: SchichtbucheintragListItem[],
 ): UebergabeDetail {
   return {
     ...toUebergabeListItem(uebergabe, {
       offeneStoerungen: offeneStoerungenListe.length,
       laufendeArbeiten: laufendeArbeitenListe.length,
+      abgeschlosseneEintraege: abgeschlosseneListe.length,
     }),
     besondereHinweise: uebergabe.besondereHinweise,
     sicherheitshinweise: uebergabe.sicherheitshinweise,
@@ -61,5 +68,6 @@ export function toUebergabeDetail(
     wichtigeTermine: uebergabe.wichtigeTermine,
     offeneStoerungenListe,
     laufendeArbeitenListe,
+    abgeschlosseneListe,
   };
 }

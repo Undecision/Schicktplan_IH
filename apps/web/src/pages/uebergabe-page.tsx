@@ -133,7 +133,7 @@ export function UebergabePage() {
               <TableHead>Datum</TableHead>
               <TableHead>Schicht</TableHead>
               <TableHead>Gewerk</TableHead>
-              <TableHead>Offen / Laufend</TableHead>
+              <TableHead>Offen / Laufend / Erledigt</TableHead>
               <TableHead>Übergeben an</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
@@ -168,7 +168,7 @@ export function UebergabePage() {
                 </TableCell>
                 <TableCell className="whitespace-nowrap">{u.gewerk.name}</TableCell>
                 <TableCell className="whitespace-nowrap">
-                  {u.offeneStoerungen} / {u.laufendeArbeiten}
+                  {u.offeneStoerungen} / {u.laufendeArbeiten} / {u.abgeschlosseneEintraege}
                 </TableCell>
                 <TableCell className="whitespace-nowrap">{u.uebernommenVon?.name ?? "—"}</TableCell>
                 <TableCell>

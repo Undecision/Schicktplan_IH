@@ -50,8 +50,8 @@ export class UebergabenService {
 
   async findOne(user: AuthenticatedUser, id: string) {
     const uebergabe = await this.load(user, id);
-    const { offene, laufende } = await this.eintraege(uebergabe);
-    return toUebergabeDetail(uebergabe, offene, laufende);
+    const { offene, laufende, abgeschlossen } = await this.eintraege(uebergabe);
+    return toUebergabeDetail(uebergabe, offene, laufende, abgeschlossen);
   }
 
   /** Erzeugt (oder liefert) die Übergabe für Tag/Schicht/Gewerk idempotent. */
@@ -205,7 +205,16 @@ export class UebergabenService {
         schichtId: uebergabe.schichtId,
         gewerkId: uebergabe.gewerkId,
         zeitpunkt: { gte: start, lt: end },
-        status: { in: [EintragStatus.OFFEN, EintragStatus.IN_BEARBEITUNG] },
+        // Alle relevanten Status: offen/laufend werden übernommen, erledigt/
+        // verschoben zur Dokumentation mitgeführt (dürfen nicht "wegfallen").
+        status: {
+          in: [
+            EintragStatus.OFFEN,
+            EintragStatus.IN_BEARBEITUNG,
+            EintragStatus.ERLEDIGT,
+            EintragStatus.VERSCHOBEN,
+          ],
+        },
       },
       include: EINTRAG_LIST_INCLUDE,
       orderBy: [{ prioritaet: "desc" }, { zeitpunkt: "asc" }],
@@ -214,6 +223,9 @@ export class UebergabenService {
     return {
       offene: list.filter((e) => e.status === EintragStatus.OFFEN),
       laufende: list.filter((e) => e.status === EintragStatus.IN_BEARBEITUNG),
+      abgeschlossen: list.filter(
+        (e) => e.status === EintragStatus.ERLEDIGT || e.status === EintragStatus.VERSCHOBEN,
+      ),
     };
   }
 
@@ -225,13 +237,19 @@ export class UebergabenService {
       gewerkId: uebergabe.gewerkId,
       zeitpunkt: { gte: start, lt: end },
     };
-    const [offeneStoerungen, laufendeArbeiten] = await Promise.all([
+    const [offeneStoerungen, laufendeArbeiten, abgeschlosseneEintraege] = await Promise.all([
       this.prisma.schichtbucheintrag.count({ where: { ...where, status: EintragStatus.OFFEN } }),
       this.prisma.schichtbucheintrag.count({
         where: { ...where, status: EintragStatus.IN_BEARBEITUNG },
       }),
+      this.prisma.schichtbucheintrag.count({
+        where: {
+          ...where,
+          status: { in: [EintragStatus.ERLEDIGT, EintragStatus.VERSCHOBEN] },
+        },
+      }),
     ]);
-    return { offeneStoerungen, laufendeArbeiten };
+    return { offeneStoerungen, laufendeArbeiten, abgeschlosseneEintraege };
   }
 }
 

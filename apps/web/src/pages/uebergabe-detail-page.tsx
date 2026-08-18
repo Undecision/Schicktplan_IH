@@ -146,6 +146,11 @@ export function UebergabeDetailPage() {
         eintraege={u.laufendeArbeitenListe}
         leer="Keine laufenden Arbeiten."
       />
+      <EintragListe
+        titel={`In dieser Schicht abgeschlossen (${u.abgeschlosseneListe.length})`}
+        eintraege={u.abgeschlosseneListe}
+        leer="Keine abgeschlossenen Einträge."
+      />
 
       <Card>
         <CardHeader>

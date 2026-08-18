@@ -89,6 +89,7 @@ export function renderUebergabeHtml(u: UebergabeDetail, appName: string): string
 
   ${abschnitt(`Offene Störungen (${u.offeneStoerungenListe.length})`, eintragListe(u.offeneStoerungenListe))}
   ${abschnitt(`Laufende Arbeiten (${u.laufendeArbeitenListe.length})`, eintragListe(u.laufendeArbeitenListe))}
+  ${abschnitt(`In dieser Schicht abgeschlossen (${u.abgeschlosseneListe.length})`, eintragListe(u.abgeschlosseneListe))}
   ${abschnitt("Sicherheitsinformationen", `<p>${textblock(u.sicherheitshinweise)}</p>`)}
   ${abschnitt("Freischaltungen", `<p>${textblock(u.freischaltungen)}</p>`)}
   ${abschnitt("Arbeitsgenehmigungen", `<p>${textblock(u.arbeitsgenehmigungen)}</p>`)}
