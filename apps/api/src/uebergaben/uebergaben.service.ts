@@ -168,6 +168,17 @@ export class UebergabenService {
     return this.findOne(user, id);
   }
 
+  /**
+   * Löscht eine Schichtübergabe endgültig. Die abgeleiteten Eintragslisten
+   * werden nicht persistiert, daher hat das Löschen keine Auswirkung auf die
+   * zugrunde liegenden Schichtbucheinträge – nur das Übergabe-Dokument selbst
+   * (Freitextfelder, Status, Unterschriften) wird entfernt.
+   */
+  async remove(user: AuthenticatedUser, id: string): Promise<void> {
+    await this.load(user, id);
+    await this.prisma.schichtuebergabe.delete({ where: { id } });
+  }
+
   // --- Helfer ---
 
   private async load(user: AuthenticatedUser, id: string): Promise<UebergabePayload> {

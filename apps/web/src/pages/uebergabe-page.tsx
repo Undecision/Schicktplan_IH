@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import {
   UEBERGABE_STATUS_LABELS,
   UebergabeStatus,
@@ -28,7 +28,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useFormOptions } from "@/features/eintraege/queries";
-import { useGeneriereUebergabenMehrere, useUebergaben } from "@/features/uebergaben/queries";
+import {
+  useDeleteUebergabe,
+  useGeneriereUebergabenMehrere,
+  useUebergaben,
+} from "@/features/uebergaben/queries";
 
 const ALL = "__all__";
 
@@ -84,9 +88,23 @@ export function StatusUebergabeBadge({ status }: { status: UebergabeStatus }) {
 export function UebergabePage() {
   const navigate = useNavigate();
   const { data: options } = useFormOptions();
+  const { hasPermission } = useAuth();
+  const loeschen = useDeleteUebergabe();
   const [filter, setFilter] = useState<UebergabeFilter>({});
   const { data: uebergaben = [], isLoading } = useUebergaben(filter);
   const [showGen, setShowGen] = useState(false);
+  const darfLoeschen = hasPermission("uebergaben:manage");
+
+  function handleLoeschen(u: (typeof uebergaben)[number]) {
+    if (
+      !window.confirm(
+        `Schichtübergabe „${u.schicht.name} · ${u.gewerk.name}" vom ${formatDate(u.datum)} endgültig löschen? Die Schichtbucheinträge selbst bleiben erhalten.`,
+      )
+    ) {
+      return;
+    }
+    loeschen.mutate(u.id);
+  }
 
   return (
     <div className="space-y-4">
@@ -136,19 +154,26 @@ export function UebergabePage() {
               <TableHead>Offen / Laufend / Erledigt</TableHead>
               <TableHead>Übergeben an</TableHead>
               <TableHead>Status</TableHead>
+              {darfLoeschen && <TableHead className="w-10" />}
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell
+                  colSpan={darfLoeschen ? 7 : 6}
+                  className="text-center text-muted-foreground"
+                >
                   Lädt…
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && uebergaben.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell
+                  colSpan={darfLoeschen ? 7 : 6}
+                  className="text-center text-muted-foreground"
+                >
                   Keine Übergaben. Über „Übergabe erstellen" eine Schichtübergabe anlegen.
                 </TableCell>
               </TableRow>
@@ -174,6 +199,23 @@ export function UebergabePage() {
                 <TableCell>
                   <StatusUebergabeBadge status={u.status} />
                 </TableCell>
+                {darfLoeschen && (
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Übergabe löschen"
+                      className="text-destructive hover:text-destructive"
+                      disabled={loeschen.isPending}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLoeschen(u);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>

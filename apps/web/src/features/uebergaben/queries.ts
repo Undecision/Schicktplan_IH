@@ -5,6 +5,7 @@ import type {
   UpdateUebergabeRequest,
 } from "@schichtbuch/shared";
 import {
+  deleteUebergabe,
   fetchUebergabe,
   fetchUebergaben,
   generiereUebergabenMehrere,
@@ -49,6 +50,14 @@ export function useUebergeben(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (uebernommenVonId: string | null) => uebergebenUebergabe(id, uebernommenVonId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: UEBERGABEN_KEY }),
+  });
+}
+
+export function useDeleteUebergabe() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteUebergabe(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: UEBERGABEN_KEY }),
   });
 }

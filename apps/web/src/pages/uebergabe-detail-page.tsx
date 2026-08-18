@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, FileDown, Save } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileDown, RefreshCw, Save, Trash2 } from "lucide-react";
 import type { SchichtbucheintragListItem, UebergabeDetail } from "@schichtbuch/shared";
 import { UebergabeStatus } from "@schichtbuch/shared";
+import { useAuth } from "@/features/auth/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,7 +17,12 @@ import {
 import { PrioritaetBadge, StatusBadge } from "@/features/eintraege/badges";
 import { useFormOptions } from "@/features/eintraege/queries";
 import { oeffneUebergabePdf } from "@/features/uebergaben/api";
-import { useUebergabe, useUebergeben, useUpdateUebergabe } from "@/features/uebergaben/queries";
+import {
+  useDeleteUebergabe,
+  useUebergabe,
+  useUebergeben,
+  useUpdateUebergabe,
+} from "@/features/uebergaben/queries";
 import { StatusUebergabeBadge } from "./uebergabe-page";
 
 const KEIN = "__kein__";
@@ -55,10 +61,24 @@ function formatDateTime(iso: string) {
 export function UebergabeDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { data: u, isLoading, isError } = useUebergabe(id);
+  const { data: u, isLoading, isError, isFetching, refetch } = useUebergabe(id);
   const { data: options } = useFormOptions();
+  const { hasPermission } = useAuth();
   const update = useUpdateUebergabe(id ?? "");
   const uebergeben = useUebergeben(id ?? "");
+  const loeschen = useDeleteUebergabe();
+
+  function handleLoeschen() {
+    if (!u) return;
+    if (
+      !window.confirm(
+        `Schichtübergabe „${u.schicht.name} · ${u.gewerk.name}" vom ${formatDate(u.datum)} endgültig löschen? Die Schichtbucheinträge selbst bleiben erhalten.`,
+      )
+    ) {
+      return;
+    }
+    loeschen.mutate(u.id, { onSuccess: () => navigate("/uebergabe") });
+  }
 
   const [texte, setTexte] = useState<Record<string, string>>({});
   const [uebernommenVonId, setUebernommenVonId] = useState("");
@@ -98,11 +118,26 @@ export function UebergabeDetailPage() {
           <ArrowLeft className="h-4 w-4" />
           Zur Übersicht
         </Button>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => void refetch()} disabled={isFetching}>
+            <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+            Aktualisieren
+          </Button>
           <Button variant="outline" onClick={() => void oeffneUebergabePdf(u.id)}>
             <FileDown className="h-4 w-4" />
             PDF
           </Button>
+          {hasPermission("uebergaben:manage") && (
+            <Button
+              variant="outline"
+              className="text-destructive hover:text-destructive"
+              onClick={handleLoeschen}
+              disabled={loeschen.isPending}
+            >
+              <Trash2 className="h-4 w-4" />
+              {loeschen.isPending ? "Löscht…" : "Löschen"}
+            </Button>
+          )}
           {istEntwurf && (
             <Button
               onClick={() => uebergeben.mutate(uebernommenVonId || null)}

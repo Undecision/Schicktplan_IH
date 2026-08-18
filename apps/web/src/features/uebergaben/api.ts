@@ -54,6 +54,10 @@ export async function uebergebenUebergabe(
   return data;
 }
 
+export async function deleteUebergabe(id: string): Promise<void> {
+  await apiClient.delete(`/uebergaben/${id}`);
+}
+
 /** Lädt das Übergabe-PDF (RBAC-geschützt) als Blob und öffnet es im neuen Tab. */
 export async function oeffneUebergabePdf(id: string): Promise<void> {
   const { data } = await apiClient.get<Blob>(`/uebergaben/${id}/pdf`, { responseType: "blob" });

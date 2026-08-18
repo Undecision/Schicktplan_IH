@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Res } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Res,
+} from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import type { Response } from "express";
 import type { AuthenticatedUser } from "@schichtbuch/shared";
@@ -71,6 +82,14 @@ export class UebergabenController {
     @Body() dto: UebergebenDto,
   ) {
     return this.service.uebergeben(user, id, dto);
+  }
+
+  @Audited("Schichtuebergabe")
+  @RequirePermissions("uebergaben:manage")
+  @Delete(":id")
+  @HttpCode(204)
+  remove(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
+    return this.service.remove(user, id);
   }
 
   @RequirePermissions("uebergaben:manage")
