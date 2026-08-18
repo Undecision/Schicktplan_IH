@@ -93,7 +93,7 @@ export function UebergabePage() {
   const [filter, setFilter] = useState<UebergabeFilter>({});
   const { data: uebergaben = [], isLoading } = useUebergaben(filter);
   const [showGen, setShowGen] = useState(false);
-  const darfLoeschen = hasPermission("uebergaben:manage");
+  const darfLoeschen = hasPermission("uebergaben:delete");
 
   function handleLoeschen(u: (typeof uebergaben)[number]) {
     if (

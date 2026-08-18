@@ -127,7 +127,7 @@ export function UebergabeDetailPage() {
             <FileDown className="h-4 w-4" />
             PDF
           </Button>
-          {hasPermission("uebergaben:manage") && (
+          {hasPermission("uebergaben:delete") && (
             <Button
               variant="outline"
               className="text-destructive hover:text-destructive"

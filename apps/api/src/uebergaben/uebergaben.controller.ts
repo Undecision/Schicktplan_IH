@@ -85,7 +85,7 @@ export class UebergabenController {
   }
 
   @Audited("Schichtuebergabe")
-  @RequirePermissions("uebergaben:manage")
+  @RequirePermissions("uebergaben:delete")
   @Delete(":id")
   @HttpCode(204)
   remove(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {

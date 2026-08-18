@@ -103,7 +103,15 @@ const DEFAULT_SCHICHTEN = [
   { name: "Nachtschicht", startzeit: "22:00", endzeit: "06:00" },
 ];
 
-async function seedRollen(prisma: SeedPrisma) {
+/**
+ * Synchronisiert den Berechtigungs-Katalog: legt alle in `PERMISSIONS`
+ * definierten Berechtigungen idempotent an und stellt sicher, dass die
+ * Administrator-Rolle stets sämtliche Berechtigungen besitzt. Bewusst
+ * unabhängig vom vollständigen Seed – so gehen neue Berechtigungen (z.B.
+ * "uebergaben:delete") beim Update auch dann nicht verloren, wenn
+ * SEED_ON_STARTUP deaktiviert ist.
+ */
+export async function syncBerechtigungen(prisma: SeedPrisma): Promise<void> {
   for (const key of PERMISSIONS) {
     await prisma.permission.upsert({
       where: { key },
@@ -111,6 +119,16 @@ async function seedRollen(prisma: SeedPrisma) {
       update: { description: PERMISSION_DESCRIPTIONS[key] },
     });
   }
+  const admin = await prisma.role.upsert({
+    where: { name: Rolle.ADMINISTRATOR },
+    create: { name: Rolle.ADMINISTRATOR },
+    update: {},
+  });
+  await setzeRollenPermissions(prisma, admin.id, PERMISSIONS);
+}
+
+async function seedRollen(prisma: SeedPrisma) {
+  await syncBerechtigungen(prisma);
 
   await migriereAltRolleMeisterSchichtleiter(prisma);
 
@@ -123,11 +141,10 @@ async function seedRollen(prisma: SeedPrisma) {
     const vorhandene = await prisma.rolePermission.count({ where: { roleId: role.id } });
 
     // Standard-Berechtigungen NUR beim ersten Anlegen einer Rolle setzen, damit
-    // spätere Anpassungen über die Rollenverwaltung erhalten bleiben. Ausnahme:
-    // der Administrator wird immer mit allen Berechtigungen synchronisiert.
-    if (rolle === Rolle.ADMINISTRATOR) {
-      await setzeRollenPermissions(prisma, role.id, PERMISSIONS);
-    } else if (vorhandene === 0) {
+    // spätere Anpassungen über die Rollenverwaltung erhalten bleiben. Der
+    // Administrator wird bereits in syncBerechtigungen mit allen Rechten
+    // synchronisiert und hier deshalb ausgelassen.
+    if (rolle !== Rolle.ADMINISTRATOR && vorhandene === 0) {
       await setzeRollenPermissions(prisma, role.id, ROLE_PERMISSIONS[rolle]);
     }
   }

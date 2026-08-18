@@ -13,6 +13,7 @@ export const PERMISSIONS = [
   "anweisungen:read",
   "anweisungen:manage",
   "uebergaben:manage",
+  "uebergaben:delete",
   "berichte:read",
   "berichte:freigeben",
   "admin:benutzer:manage",
@@ -34,6 +35,7 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   "anweisungen:read": "Arbeitsanweisungen lesen und quittieren",
   "anweisungen:manage": "Arbeitsanweisungen erstellen und Lesestatus einsehen",
   "uebergaben:manage": "Schichtübergaben erstellen/bearbeiten",
+  "uebergaben:delete": "Schichtübergaben löschen",
   "berichte:read": "Berichte lesen",
   "berichte:freigeben": "Schichtberichte freigeben",
   "admin:benutzer:manage": "Benutzerverwaltung (Anlegen/Bearbeiten/Deaktivieren)",
@@ -58,7 +60,7 @@ export const PERMISSION_GRUPPEN: { titel: string; permissions: PermissionKey[] }
   { titel: "Arbeitsanweisungen", permissions: ["anweisungen:read", "anweisungen:manage"] },
   {
     titel: "Berichte & Übergaben",
-    permissions: ["uebergaben:manage", "berichte:read", "berichte:freigeben"],
+    permissions: ["uebergaben:manage", "uebergaben:delete", "berichte:read", "berichte:freigeben"],
   },
   {
     titel: "Administration",

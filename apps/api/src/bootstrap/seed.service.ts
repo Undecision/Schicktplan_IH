@@ -3,7 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import type { AppConfig } from "../config/configuration";
 import { PrismaService } from "../prisma/prisma.service";
 import { PasswordService } from "../auth/password.service";
-import { runSeed } from "./seed-data";
+import { runSeed, syncBerechtigungen } from "./seed-data";
 
 /**
  * Führt beim Anwendungsstart einen idempotenten Seed aus, wenn
@@ -22,6 +22,16 @@ export class SeedService implements OnApplicationBootstrap {
 
   async onApplicationBootstrap(): Promise<void> {
     const seedConfig = this.configService.get("seed", { infer: true });
+
+    // Der Berechtigungs-Katalog wird bei JEDEM Start synchronisiert (unabhängig
+    // von SEED_ON_STARTUP), damit neue Berechtigungen nach einem Update sicher
+    // angelegt und dem Administrator zugewiesen werden.
+    try {
+      await syncBerechtigungen(this.prisma);
+    } catch (error) {
+      this.logger.error(`Berechtigungs-Sync fehlgeschlagen: ${(error as Error).message}`);
+    }
+
     if (!seedConfig.onStartup) {
       return;
     }
