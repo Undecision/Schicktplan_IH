@@ -98,7 +98,7 @@ export class ArbeitsanweisungenController {
   }
 
   @Audited("Arbeitsanweisung")
-  @RequirePermissions("anweisungen:manage")
+  @RequirePermissions("anweisungen:delete")
   @Delete(":id")
   @HttpCode(204)
   remove(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {

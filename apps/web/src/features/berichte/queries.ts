@@ -5,6 +5,7 @@ import type {
   UpdateBerichtRequest,
 } from "@schichtbuch/shared";
 import {
+  deleteBericht,
   fetchBericht,
   fetchBerichte,
   freigebenBericht,
@@ -49,6 +50,14 @@ export function useFreigebenBericht(id: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => freigebenBericht(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: BERICHTE_KEY }),
+  });
+}
+
+export function useDeleteBericht() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteBericht(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: BERICHTE_KEY }),
   });
 }

@@ -63,6 +63,21 @@ export class BerichteService {
     return toBerichtDetail(bericht, eintraege);
   }
 
+  /**
+   * Löscht einen Schichtbericht endgültig. Die abgeleiteten Eintragslisten
+   * werden nicht persistiert; die zugrunde liegenden Schichtbucheinträge
+   * bleiben unberührt. Die Berechtigung (berichte:delete) prüft der Guard.
+   */
+  async remove(user: AuthenticatedUser, id: string): Promise<void> {
+    const bericht = await this.prisma.schichtbericht.findUnique({
+      where: { id },
+      select: { id: true, gewerk: { select: { name: true } } },
+    });
+    if (!bericht) throw new NotFoundException("Bericht nicht gefunden.");
+    this.assertGewerkVisible(user, bericht.gewerk.name);
+    await this.prisma.schichtbericht.delete({ where: { id } });
+  }
+
   /** Erzeugt Berichte für einen Tag/Schicht idempotent (upsert je Gewerk). */
   async generieren(user: AuthenticatedUser, dto: GeneriereBerichtDto) {
     const datum = new Date(dto.datum);

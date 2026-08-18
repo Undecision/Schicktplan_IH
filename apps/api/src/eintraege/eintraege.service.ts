@@ -292,6 +292,26 @@ export class EintraegeService {
   }
 
   /**
+   * Löscht einen Schichtbucheintrag per Soft-Delete (setzt `deletedAt`), um die
+   * Referenzintegrität (Historie, Anhänge, Berichte) zu wahren. Gilt nur für
+   * über die Gewerk-Sichtbarkeit erreichbare Einträge; die eigentliche
+   * Berechtigung (eintraege:delete) prüft der Controller-Guard.
+   */
+  async remove(user: AuthenticatedUser, id: string): Promise<void> {
+    const existing = await this.prisma.schichtbucheintrag.findFirst({
+      where: { id, deletedAt: null },
+      select: { id: true, gewerk: { select: { name: true } } },
+    });
+    if (!existing || !this.isVisible(user, existing.gewerk.name)) {
+      throw new NotFoundException("Eintrag nicht gefunden.");
+    }
+    await this.prisma.schichtbucheintrag.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  /**
    * Bestimmt Bearbeitungsbeginn/-ende aus DTO-Eingaben und Status-Übergängen:
    * Beim Eintritt in IN_BEARBEITUNG wird der Beginn, beim Eintritt in ERLEDIGT
    * das Ende automatisch auf „jetzt" gesetzt – aber nur, wenn das jeweilige Feld

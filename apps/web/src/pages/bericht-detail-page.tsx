@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Save } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Save, Trash2 } from "lucide-react";
 import { SchichtberichtStatus, type SchichtbucheintragListItem } from "@schichtbuch/shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,12 @@ import {
 import { RequirePermission } from "@/features/auth/protected-route";
 import { PrioritaetBadge, StatusBadge } from "@/features/eintraege/badges";
 import { useFormOptions } from "@/features/eintraege/queries";
-import { useBericht, useFreigebenBericht, useUpdateBericht } from "@/features/berichte/queries";
+import {
+  useBericht,
+  useDeleteBericht,
+  useFreigebenBericht,
+  useUpdateBericht,
+} from "@/features/berichte/queries";
 import { StatusBerichtBadge } from "./berichte-page";
 
 const KEIN = "__kein__";
@@ -39,6 +44,19 @@ export function BerichtDetailPage() {
   const { data: options } = useFormOptions();
   const update = useUpdateBericht(id ?? "");
   const freigeben = useFreigebenBericht(id ?? "");
+  const loeschen = useDeleteBericht();
+
+  function handleLoeschen() {
+    if (!bericht) return;
+    if (
+      !window.confirm(
+        "Diesen Schichtbericht wirklich löschen? Das lässt sich nicht rückgängig machen.",
+      )
+    ) {
+      return;
+    }
+    loeschen.mutate(bericht.id, { onSuccess: () => navigate("/berichte") });
+  }
 
   const [verantwortlicherId, setVerantwortlicherId] = useState("");
   const [besondere, setBesondere] = useState("");
@@ -72,14 +90,27 @@ export function BerichtDetailPage() {
           <ArrowLeft className="h-4 w-4" />
           Zur Übersicht
         </Button>
-        {istEntwurf && (
-          <RequirePermission permission="berichte:freigeben">
-            <Button onClick={() => freigeben.mutate()} disabled={freigeben.isPending}>
-              <CheckCircle2 className="h-4 w-4" />
-              {freigeben.isPending ? "Gibt frei…" : "Bericht freigeben"}
+        <div className="flex flex-wrap gap-2">
+          {istEntwurf && (
+            <RequirePermission permission="berichte:freigeben">
+              <Button onClick={() => freigeben.mutate()} disabled={freigeben.isPending}>
+                <CheckCircle2 className="h-4 w-4" />
+                {freigeben.isPending ? "Gibt frei…" : "Bericht freigeben"}
+              </Button>
+            </RequirePermission>
+          )}
+          <RequirePermission permission="berichte:delete">
+            <Button
+              variant="outline"
+              className="text-destructive hover:text-destructive"
+              onClick={handleLoeschen}
+              disabled={loeschen.isPending}
+            >
+              <Trash2 className="h-4 w-4" />
+              {loeschen.isPending ? "Löscht…" : "Löschen"}
             </Button>
           </RequirePermission>
-        )}
+        </div>
       </div>
 
       <Card>

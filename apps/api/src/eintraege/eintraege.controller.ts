@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+} from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import type { Request } from "express";
 import type { AuthenticatedUser } from "@schichtbuch/shared";
@@ -67,5 +78,13 @@ export class EintraegeController {
     @Body() dto: CreateKommentarDto,
   ) {
     return this.service.addKommentar(user, id, dto);
+  }
+
+  @Audited("Schichtbucheintrag")
+  @RequirePermissions("eintraege:delete")
+  @Delete(":id")
+  @HttpCode(204)
+  remove(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
+    return this.service.remove(user, id);
   }
 }

@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, Info, Pencil } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Info, Pencil, Trash2 } from "lucide-react";
 import { EINTRAG_TYP_LABELS, EintragTyp } from "@schichtbuch/shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { RequirePermission } from "@/features/auth/protected-route";
-import { useAddKommentar, useEintrag } from "./queries";
+import { useAddKommentar, useDeleteEintrag, useEintrag } from "./queries";
 import { PrioritaetBadge, StatusBadge } from "./badges";
 import { EintragFormDialog } from "./eintrag-form-dialog";
 import { EintragAnhaenge } from "./eintrag-anhaenge";
@@ -32,8 +32,21 @@ export function EintragDetailPage() {
   const navigate = useNavigate();
   const { data: eintrag, isLoading, isError } = useEintrag(id);
   const addKommentar = useAddKommentar();
+  const loeschen = useDeleteEintrag();
   const [editOpen, setEditOpen] = useState(false);
   const [kommentarText, setKommentarText] = useState("");
+
+  function handleLoeschen() {
+    if (!eintrag) return;
+    if (
+      !window.confirm(
+        "Diesen Schichtbucheintrag wirklich löschen? Das lässt sich nicht rückgängig machen.",
+      )
+    ) {
+      return;
+    }
+    loeschen.mutate(eintrag.id, { onSuccess: () => navigate("/schichtbuch") });
+  }
 
   if (isLoading) {
     return <p className="text-muted-foreground">Lädt…</p>;
@@ -65,12 +78,25 @@ export function EintragDetailPage() {
           <ArrowLeft className="h-4 w-4" />
           Zur Liste
         </Button>
-        <RequirePermission permission="eintraege:update">
-          <Button variant="outline" onClick={() => setEditOpen(true)}>
-            <Pencil className="h-4 w-4" />
-            Bearbeiten
-          </Button>
-        </RequirePermission>
+        <div className="flex gap-2">
+          <RequirePermission permission="eintraege:update">
+            <Button variant="outline" onClick={() => setEditOpen(true)}>
+              <Pencil className="h-4 w-4" />
+              Bearbeiten
+            </Button>
+          </RequirePermission>
+          <RequirePermission permission="eintraege:delete">
+            <Button
+              variant="outline"
+              className="text-destructive hover:text-destructive"
+              onClick={handleLoeschen}
+              disabled={loeschen.isPending}
+            >
+              <Trash2 className="h-4 w-4" />
+              {loeschen.isPending ? "Löscht…" : "Löschen"}
+            </Button>
+          </RequirePermission>
+        </div>
       </div>
 
       <Card>

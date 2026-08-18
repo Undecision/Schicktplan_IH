@@ -37,6 +37,10 @@ export async function updateEintrag(
   return data;
 }
 
+export async function deleteEintrag(id: string): Promise<void> {
+  await apiClient.delete(`/eintraege/${id}`);
+}
+
 export async function addKommentar(
   id: string,
   payload: CreateKommentarRequest,

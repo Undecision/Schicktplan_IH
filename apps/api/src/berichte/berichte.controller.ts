@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import type { AuthenticatedUser } from "@schichtbuch/shared";
 import { RequirePermissions } from "../auth/decorators/require-permissions.decorator";
@@ -49,5 +49,13 @@ export class BerichteController {
   @Post(":id/freigeben")
   freigeben(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
     return this.service.freigeben(user, id);
+  }
+
+  @Audited("Schichtbericht")
+  @RequirePermissions("berichte:delete")
+  @Delete(":id")
+  @HttpCode(204)
+  remove(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
+    return this.service.remove(user, id);
   }
 }

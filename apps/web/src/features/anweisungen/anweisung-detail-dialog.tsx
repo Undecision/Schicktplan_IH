@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { Check, Download, FileText, Loader2, Users } from "lucide-react";
+import { Check, Download, FileText, Loader2, Trash2, Users } from "lucide-react";
 import type { ArbeitsanweisungListItem } from "@schichtbuch/shared";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/features/auth/auth-context";
 import { fetchAnweisungAnhangBlob } from "./api";
-import { useQuittieren, useQuittungen } from "./queries";
+import { useDeleteAnweisung, useQuittieren, useQuittungen } from "./queries";
 
 function formatDateTime(iso: string): string {
   const d = new Date(iso);
@@ -23,9 +23,17 @@ export function AnweisungDetailDialog({
 }) {
   const { hasPermission } = useAuth();
   const quittieren = useQuittieren();
+  const loeschen = useDeleteAnweisung();
   const darfVerwalten = hasPermission("anweisungen:manage");
+  const darfLoeschen = hasPermission("anweisungen:delete");
   // Empfänger = Leser ohne Verwaltungsrecht (nur diese müssen quittieren).
   const istEmpfaenger = hasPermission("anweisungen:read") && !darfVerwalten;
+
+  function handleLoeschen() {
+    if (!anweisung) return;
+    if (!window.confirm(`Arbeitsanweisung „${anweisung.titel}" wirklich löschen?`)) return;
+    loeschen.mutate(anweisung.id, { onSuccess: () => onOpenChange(false) });
+  }
 
   return (
     <Dialog open={!!anweisung} onOpenChange={onOpenChange}>
@@ -74,6 +82,20 @@ export function AnweisungDetailDialog({
                       Als gelesen quittieren
                     </Button>
                   )}
+                </div>
+              )}
+
+              {darfLoeschen && (
+                <div className="flex justify-end border-t border-border pt-3">
+                  <Button
+                    variant="outline"
+                    className="text-destructive hover:text-destructive"
+                    onClick={handleLoeschen}
+                    disabled={loeschen.isPending}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {loeschen.isPending ? "Löscht…" : "Löschen"}
+                  </Button>
                 </div>
               )}
             </div>

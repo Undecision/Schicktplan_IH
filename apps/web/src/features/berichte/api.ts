@@ -32,6 +32,10 @@ export async function updateBericht(
   return data;
 }
 
+export async function deleteBericht(id: string): Promise<void> {
+  await apiClient.delete(`/berichte/${id}`);
+}
+
 export async function freigebenBericht(id: string): Promise<SchichtberichtDetail> {
   const { data } = await apiClient.post<SchichtberichtDetail>(`/berichte/${id}/freigeben`);
   return data;

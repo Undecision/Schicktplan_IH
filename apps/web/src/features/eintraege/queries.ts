@@ -8,6 +8,7 @@ import type {
 import {
   addKommentar,
   createEintrag,
+  deleteEintrag,
   fetchEintrag,
   fetchEintraege,
   fetchFormOptions,
@@ -58,6 +59,14 @@ export function useUpdateEintrag() {
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: UpdateEintragRequest }) =>
       updateEintrag(id, payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: EINTRAEGE_KEY }),
+  });
+}
+
+export function useDeleteEintrag() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteEintrag(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: EINTRAEGE_KEY }),
   });
 }
