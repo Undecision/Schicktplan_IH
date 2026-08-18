@@ -71,7 +71,7 @@ export class TechnischePlaetzeService extends StammdatumCrudService<TechnischerP
   protected readonly config: StammdatumCrudConfig = {
     entityName: "Technischer Platz",
     uniqueField: "code",
-    orderBy: "bezeichnung",
+    orderBy: "code",
   };
 
   constructor(private readonly prisma: PrismaService) {
