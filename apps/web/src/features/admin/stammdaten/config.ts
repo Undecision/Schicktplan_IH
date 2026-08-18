@@ -47,11 +47,11 @@ export const STAMMDATEN_RESOURCES: Record<string, StammdatenResource> = {
     endpoint: "technische-plaetze",
     labelSingular: "Technischer Platz",
     labelPlural: "Technische Plätze",
-    primaryField: "bezeichnung",
+    primaryField: "code",
     importierbar: true,
     fields: [
+      { key: "code", label: "Techn. Platz", type: "text" },
       { key: "bezeichnung", label: "Bezeichnung", type: "text" },
-      { key: "code", label: "Code", type: "text" },
       {
         key: "fachbereichId",
         label: "Fachbereich (optional)",

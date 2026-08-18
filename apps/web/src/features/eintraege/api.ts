@@ -69,8 +69,9 @@ async function fetchRefList(
   return data.map((item) => ({ id: item.id, name: item[labelKey] ?? "" }));
 }
 
-/** Technischer Platz inkl. optionaler Fachbereich-Zuordnung (für Vorbelegung). */
+/** Technischer Platz inkl. Code und optionaler Fachbereich-Zuordnung (für Vorbelegung). */
 export interface TechPlatzOption extends Referenz {
+  code: string;
   fachbereichId: string | null;
 }
 
@@ -94,9 +95,9 @@ export async function fetchFormOptions(): Promise<EintragFormOptions> {
     await Promise.all([
       fetchRefList("gewerke", "name"),
       fetchRefList("fachbereiche", "name"),
-      apiClient.get<{ id: string; bezeichnung: string; fachbereichId: string | null }[]>(
-        "/technische-plaetze",
-      ),
+      apiClient.get<
+        { id: string; bezeichnung: string; code: string; fachbereichId: string | null }[]
+      >("/technische-plaetze"),
       apiClient.get<{ id: string; name: string; startzeit: string; endzeit: string }[]>(
         "/schicht-definitionen",
       ),
@@ -106,6 +107,7 @@ export async function fetchFormOptions(): Promise<EintragFormOptions> {
   const technischePlaetze: TechPlatzOption[] = technischePlaetzeRaw.data.map((t) => ({
     id: t.id,
     name: t.bezeichnung,
+    code: t.code,
     fachbereichId: t.fachbereichId,
   }));
   const schichten: SchichtOption[] = schichtenRaw.data.map((s) => ({

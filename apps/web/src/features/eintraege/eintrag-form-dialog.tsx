@@ -492,7 +492,9 @@ interface SelectFieldProps {
   control: import("react-hook-form").Control<FormValues>;
   name: "schichtId" | "gewerkId" | "fachbereichId" | "technischerPlatzId";
   label: string;
-  options: { id: string; name: string }[];
+  /** Optionaler `code` wird – falls vorhanden – der Bezeichnung vorangestellt
+   *  und ist so ebenfalls durchsuchbar (z.B. Technischer Platz "7161 · 7161 TDM"). */
+  options: { id: string; name: string; code?: string }[];
   error?: string;
   allowEmpty?: boolean;
 }
@@ -507,7 +509,10 @@ function SelectField({ control, name, label, options, error, allowEmpty }: Selec
           <Combobox
             value={field.value ?? ""}
             onChange={field.onChange}
-            options={options.map((o) => ({ value: o.id, label: o.name }))}
+            options={options.map((o) => ({
+              value: o.id,
+              label: o.code ? `${o.code} · ${o.name}` : o.name,
+            }))}
             emptyOption={allowEmpty ? "— keiner —" : undefined}
           />
         )}
