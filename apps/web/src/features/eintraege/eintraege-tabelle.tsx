@@ -14,9 +14,11 @@ import {
   EintragTyp,
   PRIORITAETEN,
   PRIORITAET_LABELS,
+  SCHICHTBUCH_SPALTEN_STANDARD,
   STATUS_LABELS,
   type SchichtbucheintragListItem,
 } from "@schichtbuch/shared";
+import { useSchichtbuchSpalten } from "@/features/einstellungen/queries";
 import {
   Table,
   TableBody,
@@ -76,7 +78,7 @@ function tagKey(iso: string): string {
 const SPALTEN: Spalte[] = [
   {
     key: "zeitpunkt",
-    label: "Zeitpunkt",
+    label: "Datum/Uhrzeit",
     filter: "none",
     sort: (e) => new Date(e.zeitpunkt).getTime(),
     text: (e) => formatDateTime(e.zeitpunkt),
@@ -123,8 +125,16 @@ const SPALTEN: Spalte[] = [
     render: (e) => <span className="whitespace-nowrap">{e.schicht.name}</span>,
   },
   {
-    key: "technischerPlatz",
+    key: "technischerPlatzCode",
     label: "Techn. Platz",
+    filter: "set",
+    sort: (e) => e.technischerPlatz.code,
+    text: (e) => e.technischerPlatz.code,
+    render: (e) => <span className="whitespace-nowrap font-medium">{e.technischerPlatz.code}</span>,
+  },
+  {
+    key: "technischerPlatzBezeichnung",
+    label: "Beschreibung (Techn. Platz)",
     filter: "set",
     sort: (e) => e.technischerPlatz.name,
     text: (e) => e.technischerPlatz.name,
@@ -179,6 +189,13 @@ const SPALTEN: Spalte[] = [
   },
 ];
 
+const SPALTEN_MAP: Record<string, Spalte> = Object.fromEntries(SPALTEN.map((s) => [s.key, s]));
+
+/** Sichtbare Spalten in konfigurierter Reihenfolge (unbekannte Keys werden ignoriert). */
+function sichtbareSpalten(reihenfolge: string[]): Spalte[] {
+  return reihenfolge.map((key) => SPALTEN_MAP[key]).filter((s): s is Spalte => Boolean(s));
+}
+
 export function EintraegeTabelle({
   eintraege,
   isLoading,
@@ -193,6 +210,13 @@ export function EintraegeTabelle({
   const [setFilter, setSetFilter] = useState<Record<string, Set<string>>>({});
   const [textFilter, setTextFilter] = useState<Record<string, string>>({});
 
+  // Global konfigurierte Spalten-Reihenfolge (Fallback: Standard).
+  const { data: spaltenConfig } = useSchichtbuchSpalten();
+  const spalten = useMemo(
+    () => sichtbareSpalten(spaltenConfig?.reihenfolge ?? SCHICHTBUCH_SPALTEN_STANDARD),
+    [spaltenConfig],
+  );
+
   function toggleSort(key: string) {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else {
@@ -204,19 +228,19 @@ export function EintraegeTabelle({
   // Distinct-Werte je Set-Spalte aus dem gesamten Datenbestand (stabil).
   const distinct = useMemo(() => {
     const map: Record<string, string[]> = {};
-    for (const spalte of SPALTEN) {
+    for (const spalte of spalten) {
       if (spalte.filter !== "set") continue;
       map[spalte.key] = [...new Set(eintraege.map((e) => spalte.text(e)))].sort((a, b) =>
         a.localeCompare(b),
       );
     }
     return map;
-  }, [eintraege]);
+  }, [eintraege, spalten]);
 
   // Client-seitige Filterung (Excel-artig).
   const gefiltert = useMemo(() => {
     return eintraege.filter((e) => {
-      for (const spalte of SPALTEN) {
+      for (const spalte of spalten) {
         if (spalte.filter === "set") {
           const erlaubt = setFilter[spalte.key];
           if (erlaubt && erlaubt.size > 0 && !erlaubt.has(spalte.text(e))) return false;
@@ -227,12 +251,12 @@ export function EintraegeTabelle({
       }
       return true;
     });
-  }, [eintraege, setFilter, textFilter]);
+  }, [eintraege, setFilter, textFilter, spalten]);
 
   // Gruppierung nach Tag → Schicht; Gruppen chronologisch (neueste zuerst),
   // Zeilen innerhalb der Gruppe nach gewählter Spalte. Trennung bleibt erhalten.
   const gruppen = useMemo(() => {
-    const spalte = SPALTEN.find((s) => s.key === sortKey) ?? SPALTEN[0]!;
+    const spalte = SPALTEN_MAP[sortKey] ?? spalten[0] ?? SPALTEN[0]!;
     const byKey = new Map<
       string,
       { tag: string; schicht: string; repZeit: number; rows: Item[] }
@@ -263,9 +287,9 @@ export function EintraegeTabelle({
     };
     for (const g of liste) g.rows.sort(cmp);
     return liste;
-  }, [gefiltert, sortKey, sortDir]);
+  }, [gefiltert, sortKey, sortDir, spalten]);
 
-  const spaltenAnzahl = SPALTEN.length;
+  const spaltenAnzahl = spalten.length;
   const filterAktiv =
     Object.values(setFilter).some((s) => s && s.size > 0) ||
     Object.values(textFilter).some((t) => t && t.trim());
@@ -275,7 +299,7 @@ export function EintraegeTabelle({
       <Table>
         <TableHeader>
           <TableRow>
-            {SPALTEN.map((spalte) => (
+            {spalten.map((spalte) => (
               <TableHead key={spalte.key} className="whitespace-nowrap">
                 <div className="flex items-center gap-1">
                   <button
@@ -354,7 +378,7 @@ export function EintraegeTabelle({
                 </TableRow>
                 {g.rows.map((e) => (
                   <TableRow key={e.id} className="cursor-pointer" onClick={() => onRowClick(e.id)}>
-                    {SPALTEN.map((spalte) => (
+                    {spalten.map((spalte) => (
                       <TableCell key={spalte.key} className={spalte.className}>
                         {spalte.render(e)}
                       </TableCell>

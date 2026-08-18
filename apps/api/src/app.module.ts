@@ -18,6 +18,7 @@ import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
 import { RolesModule } from "./roles/roles.module";
 import { StammdatenModule } from "./stammdaten/stammdaten.module";
+import { EinstellungenModule } from "./einstellungen/einstellungen.module";
 import { EintraegeModule } from "./eintraege/eintraege.module";
 import { AnhaengeModule } from "./anhaenge/anhaenge.module";
 import { ArbeitsanweisungenModule } from "./arbeitsanweisungen/arbeitsanweisungen.module";
@@ -62,6 +63,7 @@ import { BootstrapModule } from "./bootstrap/bootstrap.module";
     UsersModule,
     RolesModule,
     StammdatenModule,
+    EinstellungenModule,
     EintraegeModule,
     AnhaengeModule,
     ArbeitsanweisungenModule,

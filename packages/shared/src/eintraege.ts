@@ -73,6 +73,12 @@ export interface Referenz {
   name: string;
 }
 
+/** Referenz auf einen technischen Platz inkl. Code (für die getrennten Spalten). */
+export interface TechnischerPlatzRef extends Referenz {
+  /** Eindeutiger Code (Spalte „Techn. Platz"); `name` ist die Bezeichnung. */
+  code: string;
+}
+
 export interface EintragKommentar extends BaseEntity {
   text: string;
   autor: Referenz;
@@ -91,7 +97,7 @@ export interface SchichtbucheintragListItem extends BaseEntity {
   korrekturmassnahme: string | null;
   gewerk: Referenz;
   fachbereich: Referenz;
-  technischerPlatz: Referenz;
+  technischerPlatz: TechnischerPlatzRef;
   schicht: Referenz;
   ersteller: Referenz;
   verantwortlicher: Referenz | null;

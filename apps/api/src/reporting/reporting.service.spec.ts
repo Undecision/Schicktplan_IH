@@ -34,7 +34,7 @@ function row(
     prioritaet,
     sapIhAuftrag: sap,
     fachbereich: { id: `fb-${fb}`, name: fb },
-    technischerPlatz: { id: `tp-${tp}`, bezeichnung: tp },
+    technischerPlatz: { id: `tp-${tp}`, bezeichnung: tp, code: tp },
   };
 }
 

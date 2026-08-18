@@ -499,3 +499,15 @@ model ArbeitsanweisungQuittung {
   @@index([userId])
   @@map("arbeitsanweisung_quittungen")
 }
+
+/// Globale App-Einstellungen als Key-Value (P: konfigurierbare UI). Aktuell
+/// genutzt für die Spalten-Reihenfolge der Schichtbuch-Tabelle. Bewusst generisch
+/// gehalten, damit weitere Einstellungen ohne Schema-Änderung ergänzt werden können.
+model AppEinstellung {
+  key       String   @id
+  wert      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("app_einstellungen")
+}

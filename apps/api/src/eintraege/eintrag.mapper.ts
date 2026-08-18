@@ -12,7 +12,7 @@ import type {
 export const EINTRAG_LIST_INCLUDE = {
   gewerk: { select: { id: true, name: true } },
   fachbereich: { select: { id: true, name: true } },
-  technischerPlatz: { select: { id: true, bezeichnung: true } },
+  technischerPlatz: { select: { id: true, bezeichnung: true, code: true } },
   schicht: { select: { id: true, name: true } },
   ersteller: { select: { id: true, name: true } },
   verantwortlicher: { select: { id: true, name: true } },
@@ -57,6 +57,7 @@ export function toListItem(eintrag: EintragListPayload): SchichtbucheintragListI
     technischerPlatz: {
       id: eintrag.technischerPlatz.id,
       name: eintrag.technischerPlatz.bezeichnung,
+      code: eintrag.technischerPlatz.code,
     },
     schicht: ref(eintrag.schicht),
     ersteller: ref(eintrag.ersteller),

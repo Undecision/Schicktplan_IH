@@ -41,7 +41,7 @@ function eintrag(
     korrekturmassnahme: null,
     gewerk: { id: "g1", name: "Mechanik" },
     fachbereich: { id: "f1", name: "Druck" },
-    technischerPlatz: { id: "t1", name: "TP" },
+    technischerPlatz: { id: "t1", name: "TP", code: "7001" },
     schicht: { id: "s1", name: "Frühschicht" },
     ersteller: { id: "u1", name: "U" },
     verantwortlicher: null,

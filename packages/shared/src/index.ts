@@ -7,6 +7,7 @@ export * from "./users";
 export * from "./audit";
 export * from "./stammdaten";
 export * from "./eintraege";
+export * from "./schichtbuch-spalten";
 export * from "./anhaenge";
 export * from "./dashboard";
 export * from "./historie";
