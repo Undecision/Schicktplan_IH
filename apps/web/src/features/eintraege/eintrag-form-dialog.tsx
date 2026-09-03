@@ -416,7 +416,7 @@ export function EintragFormDialog({
         )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-3" noValidate>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
             <Field label="Datum" error={errors.datum?.message}>
               <Input type="date" {...register("datum")} />
             </Field>
@@ -485,7 +485,7 @@ export function EintragFormDialog({
             </Field>
           )}
 
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
             <Field label="SAP-IH-Auftrag (optional)" error={errors.sapIhAuftrag?.message}>
               <Input inputMode="numeric" placeholder="700123456" {...register("sapIhAuftrag")} />
             </Field>
@@ -516,7 +516,6 @@ export function EintragFormDialog({
                   type="file"
                   accept="image/*"
                   multiple
-                  capture="environment"
                   className="hidden"
                   onChange={(e) => {
                     const gewaehlt = Array.from(e.target.files ?? []);
