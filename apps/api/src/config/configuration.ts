@@ -67,6 +67,11 @@ export function buildConfiguration(env: EnvConfig) {
     pdf: {
       chromiumPath: env.PDF_CHROMIUM_PATH,
     },
+    easyflow: {
+      baseUrl: env.EASYFLOW_BASE_URL,
+      username: env.EASYFLOW_USERNAME,
+      password: env.EASYFLOW_PASSWORD,
+    },
     seed: {
       onStartup: env.SEED_ON_STARTUP,
       admin: {

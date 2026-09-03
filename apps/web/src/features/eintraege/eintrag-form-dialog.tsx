@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ImagePlus, X } from "lucide-react";
+import { Download, ImagePlus, X } from "lucide-react";
 import {
   EINTRAG_STATUS,
   EINTRAG_TYP_LABELS,
@@ -40,6 +40,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/features/auth/auth-context";
+import { fetchEasyFlowTag } from "@/features/einstellungen/api";
 import { useCreateEintrag, useFormOptions, useUpdateEintrag } from "./queries";
 import { uploadAnhang } from "./anhaenge-api";
 
@@ -267,6 +268,12 @@ export function EintragFormDialog({
   // Bilder/Dateien, die direkt beim Anlegen angehängt werden (nur im Neu-Modus).
   const [dateien, setDateien] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Zustand der EasyFlow-Übernahme (nur bei Störungen).
+  const [easyFlowLaeuft, setEasyFlowLaeuft] = useState(false);
+  const [easyFlowMeldung, setEasyFlowMeldung] = useState<{
+    art: "info" | "fehler";
+    text: string;
+  } | null>(null);
   // Merkt sich die Id eines bereits angelegten Eintrags, damit bei einem
   // fehlgeschlagenen Anhang-Upload ein erneuter Versuch nicht doppelt anlegt.
   const createdIdRef = useRef<string | null>(null);
@@ -289,12 +296,14 @@ export function EintragFormDialog({
     if (open) {
       reset(toDefaults(eintrag, typ));
       setDateien([]);
+      setEasyFlowMeldung(null);
       createdIdRef.current = null;
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }, [open, eintrag, typ, reset]);
 
   const statusWert = useWatch({ control, name: "status" });
+  const easyFlowTagWert = useWatch({ control, name: "easyFlowTag" });
 
   // Beim Wechsel auf „Erledigt" das Bearbeitungsende (Pflichtfeld) automatisch
   // mit „jetzt" vorbelegen, falls noch leer – so lässt sich der Eintrag direkt
@@ -347,6 +356,76 @@ export function EintragFormDialog({
       setValue("technischerPlatzId", "");
     }
   }, [technischePlaetzeGefiltert, getValues, setValue]);
+
+  // EasyFlow-TAG server-seitig auslesen und leere Felder der Störung vorbefüllen.
+  async function uebernehmeAusEasyFlow() {
+    const tag = getValues("easyFlowTag")?.trim();
+    if (!tag || !EASYFLOW_TAG_REGEX.test(tag)) {
+      setEasyFlowMeldung({ art: "fehler", text: EASYFLOW_TAG_HINT });
+      return;
+    }
+    setEasyFlowLaeuft(true);
+    setEasyFlowMeldung(null);
+    try {
+      const v = await fetchEasyFlowTag(tag);
+      // Nur leere Felder befüllen, damit bereits Erfasstes nicht überschrieben wird.
+      const setzeWennLeer = (
+        name: "stoerung" | "ursache" | "korrekturmassnahme" | "sapIhAuftrag",
+        wert: string | null,
+      ) => {
+        if (wert && !getValues(name)?.trim()) {
+          setValue(name, wert, { shouldValidate: true });
+        }
+      };
+      setzeWennLeer("stoerung", v.stoerung);
+      setzeWennLeer("ursache", v.ursache);
+      setzeWennLeer("korrekturmassnahme", v.korrekturmassnahme);
+      setzeWennLeer("sapIhAuftrag", v.sapIhAuftrag);
+
+      // Ereignisdatum übernehmen (nur der Datumsteil), falls vorhanden.
+      if (v.datum) {
+        const nurDatum = v.datum.slice(0, 10);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(nurDatum)) setValue("datum", nurDatum);
+      }
+
+      // Technischen Platz über den Code abgleichen; passenden Fachbereich mitsetzen,
+      // damit der Platz durch den Fachbereich-Filter nicht wieder verworfen wird.
+      let platzGesetzt = false;
+      const code = v.technischerPlatzCode?.trim().toLowerCase();
+      if (code) {
+        const treffer = (options?.technischePlaetze ?? []).find(
+          (t) => t.code.trim().toLowerCase() === code,
+        );
+        if (treffer) {
+          if (treffer.fachbereichId) setValue("fachbereichId", treffer.fachbereichId);
+          setValue("technischerPlatzId", treffer.id, { shouldValidate: true });
+          platzGesetzt = true;
+        }
+      }
+
+      const hinweise: string[] = [];
+      if (v.objektName) hinweise.push(`Objekt: ${v.objektName}`);
+      if (v.technischerPlatzCode && !platzGesetzt) {
+        hinweise.push(
+          `Technischer Platz „${v.technischerPlatzCode}" nicht in den Stammdaten gefunden – bitte manuell wählen.`,
+        );
+      }
+      setEasyFlowMeldung({
+        art: "info",
+        text: `EasyFlow-TAG ${tag} übernommen.${hinweise.length ? " " + hinweise.join(" ") : ""}`,
+      });
+    } catch (error) {
+      const message =
+        (error as { response?: { data?: { message?: string | string[] } } })?.response?.data
+          ?.message ?? "EasyFlow-Abruf fehlgeschlagen.";
+      setEasyFlowMeldung({
+        art: "fehler",
+        text: Array.isArray(message) ? message.join(" ") : message,
+      });
+    } finally {
+      setEasyFlowLaeuft(false);
+    }
+  }
 
   async function onSubmit(values: FormValues) {
     const zeitpunkt = new Date(`${values.datum}T${values.uhrzeit}:00`).toISOString();
@@ -496,6 +575,19 @@ export function EintragFormDialog({
             <Field label="EasyFlow-TAG (optional)" error={errors.easyFlowTag?.message}>
               <Input inputMode="numeric" placeholder="123456" {...register("easyFlowTag")} />
             </Field>
+            {istStoerung && (
+              <div className="flex flex-col justify-end space-y-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={uebernehmeAusEasyFlow}
+                  disabled={easyFlowLaeuft || !easyFlowTagWert?.trim()}
+                >
+                  <Download className="h-4 w-4" />
+                  {easyFlowLaeuft ? "Lädt…" : "Aus EasyFlow übernehmen"}
+                </Button>
+              </div>
+            )}
             <Field label="Bearbeitungsbeginn" error={errors.bearbeitungBeginn?.message}>
               <Input type="datetime-local" {...register("bearbeitungBeginn")} />
             </Field>
@@ -510,6 +602,12 @@ export function EintragFormDialog({
               <Input type="datetime-local" {...register("bearbeitungEnde")} />
             </Field>
           </div>
+
+          {istStoerung && easyFlowMeldung && (
+            <Alert variant={easyFlowMeldung.art === "fehler" ? "destructive" : "default"}>
+              <AlertDescription>{easyFlowMeldung.text}</AlertDescription>
+            </Alert>
+          )}
 
           {!isEdit && (
             <div className="space-y-1.5">

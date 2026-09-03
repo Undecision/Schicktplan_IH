@@ -52,6 +52,11 @@ export const envSchema = z.object({
   // Empfänger-Rollen für Benachrichtigungen (P8.5), kommagetrennt.
   NOTIFY_ROLES: z.string().optional().default("Administrator,Meister/Schichtleiter"),
 
+  // EasyFlow-Anbindung (P: TAG-Übernahme). Leer = Funktion deaktiviert.
+  EASYFLOW_BASE_URL: z.string().optional().default(""),
+  EASYFLOW_USERNAME: z.string().optional().default(""),
+  EASYFLOW_PASSWORD: z.string().optional().default(""),
+
   // Automatischer Seed beim Start (Rollen/Stammdaten/Bootstrap-Admin), idempotent.
   SEED_ON_STARTUP: boolFromString.default("false"),
   BOOTSTRAP_ADMIN_EMAIL: z.string().optional().default(""),

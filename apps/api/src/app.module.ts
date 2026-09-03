@@ -29,6 +29,7 @@ import { NotificationsModule } from "./notifications/notifications.module";
 import { PdfModule } from "./pdf/pdf.module";
 import { ReportingModule } from "./reporting/reporting.module";
 import { DsgvoModule } from "./dsgvo/dsgvo.module";
+import { IntegrationModule } from "./integration/integration.module";
 import { BootstrapModule } from "./bootstrap/bootstrap.module";
 
 @Module({
@@ -74,6 +75,7 @@ import { BootstrapModule } from "./bootstrap/bootstrap.module";
     UebergabenModule,
     ReportingModule,
     DsgvoModule,
+    IntegrationModule,
     BootstrapModule,
     HealthModule,
   ],

@@ -12,6 +12,25 @@ export interface IntegrationLinksConfig {
 }
 
 /**
+ * Aus einem EasyFlow-TAG abgeleiteter Vorschlag zum Vorbefüllen einer Störung.
+ * Alle Felder optional – das Frontend übernimmt nur, was vorhanden ist.
+ */
+export interface EasyFlowTagVorschlag {
+  /** TAG-Nummer (Rückgabe zur Kontrolle). */
+  tag: string;
+  stoerung: string | null;
+  ursache: string | null;
+  korrekturmassnahme: string | null;
+  sapIhAuftrag: string | null;
+  /** Ereignisdatum (ISO `YYYY-MM-DD`) oder null. */
+  datum: string | null;
+  /** Technischer Platz (EasyFlow „functionalLocation"), Abgleich über den Code. */
+  technischerPlatzCode: string | null;
+  /** Objektbezeichnung aus EasyFlow (nur zur Anzeige/Kontrolle). */
+  objektName: string | null;
+}
+
+/**
  * Baut aus einer URL-Vorlage und einer Nummer einen sicheren Link. Gibt null
  * zurück, wenn Vorlage/Nummer leer sind oder das Ergebnis kein http(s)-Link ist
  * (verhindert z.B. `javascript:`-URLs).

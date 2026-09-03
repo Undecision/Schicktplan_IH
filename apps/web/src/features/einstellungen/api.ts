@@ -1,4 +1,8 @@
-import type { IntegrationLinksConfig, SchichtbuchSpaltenConfig } from "@schichtbuch/shared";
+import type {
+  EasyFlowTagVorschlag,
+  IntegrationLinksConfig,
+  SchichtbuchSpaltenConfig,
+} from "@schichtbuch/shared";
 import { apiClient } from "@/lib/api-client";
 
 export async function fetchSchichtbuchSpalten(): Promise<SchichtbuchSpaltenConfig> {
@@ -29,6 +33,14 @@ export async function updateIntegrationLinks(
   const { data } = await apiClient.put<IntegrationLinksConfig>(
     "/einstellungen/integration-links",
     config,
+  );
+  return data;
+}
+
+/** Liest einen EasyFlow-TAG server-seitig aus (Vorschlag zum Vorbefüllen einer Störung). */
+export async function fetchEasyFlowTag(tag: string): Promise<EasyFlowTagVorschlag> {
+  const { data } = await apiClient.get<EasyFlowTagVorschlag>(
+    `/integration/easyflow/${encodeURIComponent(tag)}`,
   );
   return data;
 }
