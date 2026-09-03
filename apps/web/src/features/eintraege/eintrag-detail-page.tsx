@@ -92,7 +92,7 @@ export function EintragDetailPage() {
           Zur Liste
         </Button>
         <div className="flex flex-wrap gap-2">
-          {eintrag.status !== EintragStatus.ERLEDIGT && (
+          {eintrag.status !== EintragStatus.ERLEDIGT && !eintrag.weitergegeben && (
             <RequirePermission permission="eintraege:update">
               <Button variant="outline" onClick={handleWeitergabe} disabled={weitergabe.isPending}>
                 <Forward className="h-4 w-4" />
@@ -141,7 +141,13 @@ export function EintragDetailPage() {
               {formatDateTime(eintrag.zeitpunkt)} · {eintrag.schicht.name}
             </p>
           </div>
-          <div className="flex shrink-0 gap-2">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            {eintrag.weitergegeben && (
+              <Badge variant="outline" className="gap-1 border-primary/40 text-primary">
+                <Forward className="h-3 w-3" />
+                An Folgeschicht
+              </Badge>
+            )}
             <PrioritaetBadge prioritaet={eintrag.prioritaet} />
             <StatusBadge status={eintrag.status} />
           </div>

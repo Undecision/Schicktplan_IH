@@ -68,6 +68,8 @@ export function toListItem(eintrag: EintragListPayload): SchichtbucheintragListI
     bearbeitungBeginn: eintrag.bearbeitungBeginn ? eintrag.bearbeitungBeginn.toISOString() : null,
     bearbeitungEnde: eintrag.bearbeitungEnde ? eintrag.bearbeitungEnde.toISOString() : null,
     bearbeitungsdauerMinuten: dauerMinuten(eintrag.bearbeitungBeginn, eintrag.bearbeitungEnde),
+    weitergegeben: eintrag.weitergegeben,
+    weitergegebenAm: eintrag.weitergegebenAm ? eintrag.weitergegebenAm.toISOString() : null,
     anzahlAnhaenge: eintrag._count.anhaenge,
   };
 }

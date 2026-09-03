@@ -5,6 +5,7 @@ import {
   ArrowDown,
   ArrowUp,
   Filter,
+  Forward,
   Info,
   Paperclip,
 } from "lucide-react";
@@ -172,6 +173,15 @@ const SPALTEN: Spalte[] = [
     text: (e) => e.beschreibung,
     render: (e) => (
       <div className="flex items-center gap-1.5">
+        {e.weitergegeben && (
+          <span
+            className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary"
+            title="An die Folgeschicht weitergegeben – schichtübergreifend in Bearbeitung"
+          >
+            <Forward className="h-3 w-3" />
+            Folgeschicht
+          </span>
+        )}
         {e.anzahlAnhaenge > 0 && (
           <span
             className="flex shrink-0 items-center gap-0.5 text-muted-foreground"

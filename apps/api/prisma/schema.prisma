@@ -266,6 +266,11 @@ model Schichtbucheintrag {
   bearbeitungBeginn DateTime?
   bearbeitungEnde   DateTime?
 
+  /// Schichtübergreifende Weitergabe: bleibt true, bis die Meldung erledigt ist
+  /// (dann automatisch zurückgesetzt). Steuert die „an Folgeschicht"-Markierung.
+  weitergegeben   Boolean   @default(false)
+  weitergegebenAm DateTime?
+
   schichtId          String @db.Uuid
   gewerkId           String @db.Uuid
   fachbereichId      String @db.Uuid

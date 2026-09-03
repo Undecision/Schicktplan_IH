@@ -110,6 +110,13 @@ export interface SchichtbucheintragListItem extends BaseEntity {
   bearbeitungEnde: string | null;
   /** Abgeleitete Bearbeitungsdauer in Minuten (nur wenn Beginn und Ende gesetzt). */
   bearbeitungsdauerMinuten: number | null;
+  /**
+   * Schichtübergreifend an die Folgeschicht weitergegeben (bleibt bis zur
+   * Erledigung bestehen). Steuert die „an Folgeschicht"-Markierung in der Liste.
+   */
+  weitergegeben: boolean;
+  /** Zeitpunkt der letzten Weitergabe (ISO) oder null. */
+  weitergegebenAm: string | null;
   /** Anzahl der Dateianhänge (für die Büroklammer-Anzeige in der Liste). */
   anzahlAnhaenge: number;
   /**

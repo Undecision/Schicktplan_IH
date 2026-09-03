@@ -256,6 +256,12 @@ export class EintraegeService {
     if (dto.zeitpunkt !== undefined) data.zeitpunkt = new Date(dto.zeitpunkt);
     if (dto.prioritaet !== undefined) data.prioritaet = dto.prioritaet;
     if (dto.status !== undefined) data.status = dto.status;
+    // Wird die Meldung erledigt, ist sie abgeschlossen – die „an Folgeschicht"-
+    // Markierung wird dann automatisch zurückgesetzt.
+    if (dto.status === EintragStatus.ERLEDIGT) {
+      data.weitergegeben = false;
+      data.weitergegebenAm = null;
+    }
     if (dto.schlagwortIds !== undefined) {
       data.schlagwoerter = { set: dto.schlagwortIds.map((sid) => ({ id: sid })) };
     }
@@ -342,12 +348,17 @@ export class EintraegeService {
         autor: { connect: { id: user.id } },
       },
     });
-    if (existing.status === EintragStatus.OFFEN) {
-      await this.prisma.schichtbucheintrag.update({
-        where: { id },
-        data: { status: EintragStatus.IN_BEARBEITUNG },
-      });
-    }
+    await this.prisma.schichtbucheintrag.update({
+      where: { id },
+      data: {
+        weitergegeben: true,
+        weitergegebenAm: new Date(),
+        // Offene Meldung als laufend markieren (bleibt schichtübergreifend sichtbar).
+        ...(existing.status === EintragStatus.OFFEN
+          ? { status: EintragStatus.IN_BEARBEITUNG }
+          : {}),
+      },
+    });
     return this.findOne(user, id);
   }
 
