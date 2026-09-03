@@ -126,6 +126,17 @@ const formSchema = z
         message: "Das Bearbeitungsende darf nicht vor dem Beginn liegen",
       });
     }
+    // Ende (= Fertigstellungszeitpunkt) darf nicht in der Zukunft liegen.
+    if (
+      val.bearbeitungEnde?.trim() &&
+      new Date(val.bearbeitungEnde).getTime() > Date.now() + 60_000
+    ) {
+      ctx.addIssue({
+        path: ["bearbeitungEnde"],
+        code: z.ZodIssueCode.custom,
+        message: "Das Bearbeitungsende darf nicht in der Zukunft liegen",
+      });
+    }
     if (val.typ === EintragTyp.STOERUNG) {
       if (!val.stoerung?.trim()) {
         ctx.addIssue({
@@ -176,7 +187,7 @@ function toDefaults(
     // Neuer Eintrag: Datum + Uhrzeit automatisch auf „jetzt" (Schicht/Gewerk
     // werden nach dem Laden der Optionen ergänzt).
     const now = new Date();
-    const nowLocal = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const nowLocal = jetztLocalInput();
     return {
       typ: neuerTyp,
       datum: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
@@ -230,6 +241,11 @@ function toLocalInput(iso: string | null): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+/** Aktueller Zeitpunkt als Wert für <input type="datetime-local">. */
+function jetztLocalInput(): string {
+  return toLocalInput(new Date().toISOString());
+}
+
 export function EintragFormDialog({
   open,
   onOpenChange,
@@ -276,6 +292,15 @@ export function EintragFormDialog({
 
   const statusWert = useWatch({ control, name: "status" });
 
+  // Beim Wechsel auf „Erledigt" das Bearbeitungsende (Pflichtfeld) automatisch
+  // mit „jetzt" vorbelegen, falls noch leer – so lässt sich der Eintrag direkt
+  // als erledigt speichern (Zeitpunkt bleibt änderbar).
+  useEffect(() => {
+    if (statusWert === EintragStatus.ERLEDIGT && !getValues("bearbeitungEnde")) {
+      setValue("bearbeitungEnde", jetztLocalInput(), { shouldValidate: true });
+    }
+  }, [statusWert, getValues, setValue]);
+
   // Beim Neuanlegen Schicht (nach Uhrzeit) und Gewerk (nach Nutzer) vorbelegen,
   // sobald die Optionen geladen sind – ohne bereits getroffene Auswahl zu überschreiben.
   useEffect(() => {
@@ -299,16 +324,15 @@ export function EintragFormDialog({
     return alle;
   }, [options, user]);
 
-  // Technische Plätze anhand des gewählten Fachbereichs vorfiltern (Plätze ohne
-  // Fachbereich-Zuordnung gelten überall). Fällt auf „alle" zurück, solange keine
-  // Zuordnung passt (z.B. bevor Fachbereiche gepflegt sind).
+  // Technische Plätze strikt auf den gewählten Fachbereich einschränken – nur
+  // die zugeordneten Plätze werden angezeigt (kein „Müll" ohne Zuordnung). Nur
+  // wenn dem Fachbereich (noch) kein Platz zugeordnet ist, wird auf „alle"
+  // zurückgefallen, damit die Auswahl nicht leer bleibt.
   const fachbereichId = useWatch({ control, name: "fachbereichId" });
   const technischePlaetzeGefiltert = useMemo(() => {
     const alle = options?.technischePlaetze ?? [];
     if (!fachbereichId) return alle;
-    const passend = alle.filter(
-      (t) => t.fachbereichId === fachbereichId || t.fachbereichId === null,
-    );
+    const passend = alle.filter((t) => t.fachbereichId === fachbereichId);
     return passend.length > 0 ? passend : alle;
   }, [options, fachbereichId]);
 
