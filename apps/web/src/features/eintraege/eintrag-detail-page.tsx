@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, Info, Pencil, Trash2 } from "lucide-react";
-import { EINTRAG_TYP_LABELS, EintragTyp } from "@schichtbuch/shared";
+import { AlertTriangle, ArrowLeft, Forward, Info, Pencil, Trash2 } from "lucide-react";
+import { EINTRAG_TYP_LABELS, EintragStatus, EintragTyp } from "@schichtbuch/shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { RequirePermission } from "@/features/auth/protected-route";
-import { useAddKommentar, useDeleteEintrag, useEintrag } from "./queries";
+import { useAddKommentar, useDeleteEintrag, useEintrag, useWeitergabeEintrag } from "./queries";
 import { PrioritaetBadge, StatusBadge } from "./badges";
 import { EintragFormDialog } from "./eintrag-form-dialog";
 import { EintragAnhaenge } from "./eintrag-anhaenge";
@@ -33,8 +33,21 @@ export function EintragDetailPage() {
   const { data: eintrag, isLoading, isError } = useEintrag(id);
   const addKommentar = useAddKommentar();
   const loeschen = useDeleteEintrag();
+  const weitergabe = useWeitergabeEintrag();
   const [editOpen, setEditOpen] = useState(false);
   const [kommentarText, setKommentarText] = useState("");
+
+  function handleWeitergabe() {
+    if (!eintrag) return;
+    if (
+      !window.confirm(
+        "Diese Meldung an die Folgeschicht zur Weiterbearbeitung übergeben? Es wird kein neuer Eintrag angelegt – die Folgeschicht bearbeitet diesen Eintrag weiter.",
+      )
+    ) {
+      return;
+    }
+    weitergabe.mutate(eintrag.id);
+  }
 
   function handleLoeschen() {
     if (!eintrag) return;
@@ -78,7 +91,15 @@ export function EintragDetailPage() {
           <ArrowLeft className="h-4 w-4" />
           Zur Liste
         </Button>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {eintrag.status !== EintragStatus.ERLEDIGT && (
+            <RequirePermission permission="eintraege:update">
+              <Button variant="outline" onClick={handleWeitergabe} disabled={weitergabe.isPending}>
+                <Forward className="h-4 w-4" />
+                {weitergabe.isPending ? "Übergibt…" : "An Folgeschicht weitergeben"}
+              </Button>
+            </RequirePermission>
+          )}
           <RequirePermission permission="eintraege:update">
             <Button variant="outline" onClick={() => setEditOpen(true)}>
               <Pencil className="h-4 w-4" />

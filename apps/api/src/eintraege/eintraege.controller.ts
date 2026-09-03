@@ -81,6 +81,13 @@ export class EintraegeController {
   }
 
   @Audited("Schichtbucheintrag")
+  @RequirePermissions("eintraege:update")
+  @Post(":id/weitergabe")
+  weitergabe(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
+    return this.service.weitergabe(user, id);
+  }
+
+  @Audited("Schichtbucheintrag")
   @RequirePermissions("eintraege:delete")
   @Delete(":id")
   @HttpCode(204)

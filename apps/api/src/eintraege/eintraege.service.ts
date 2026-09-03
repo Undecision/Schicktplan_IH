@@ -1,6 +1,10 @@
-import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { BadRequestException } from "@nestjs/common";
 import { EintragStatus, EintragTyp, Prioritaet, type AuthenticatedUser } from "@schichtbuch/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
@@ -309,6 +313,42 @@ export class EintraegeService {
       where: { id },
       data: { deletedAt: new Date() },
     });
+  }
+
+  /**
+   * Gibt einen schichtübergreifenden Eintrag an die Folgeschicht weiter: statt
+   * eines neuen Eintrags wird derselbe Eintrag weiterbearbeitet. Es wird ein
+   * nachvollziehbarer Kommentar hinterlegt (wer/wann) und ein offener Eintrag
+   * auf „In Bearbeitung" gesetzt, damit er als laufende Arbeit sichtbar bleibt.
+   * Erledigte Einträge können nicht weitergegeben werden.
+   */
+  async weitergabe(user: AuthenticatedUser, id: string) {
+    const existing = await this.prisma.schichtbucheintrag.findFirst({
+      where: { id, deletedAt: null },
+      select: { id: true, status: true, gewerk: { select: { name: true } } },
+    });
+    if (!existing || !this.isVisible(user, existing.gewerk.name)) {
+      throw new NotFoundException("Eintrag nicht gefunden.");
+    }
+    if (existing.status === EintragStatus.ERLEDIGT) {
+      throw new BadRequestException(
+        "Erledigte Meldungen können nicht an die Folgeschicht weitergegeben werden.",
+      );
+    }
+    await this.prisma.eintragKommentar.create({
+      data: {
+        text: "🔁 An die Folgeschicht zur Weiterbearbeitung übergeben.",
+        eintrag: { connect: { id } },
+        autor: { connect: { id: user.id } },
+      },
+    });
+    if (existing.status === EintragStatus.OFFEN) {
+      await this.prisma.schichtbucheintrag.update({
+        where: { id },
+        data: { status: EintragStatus.IN_BEARBEITUNG },
+      });
+    }
+    return this.findOne(user, id);
   }
 
   /**

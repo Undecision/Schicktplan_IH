@@ -14,6 +14,7 @@ import {
   fetchFormOptions,
   fetchHistorie,
   updateEintrag,
+  weitergabeEintrag,
 } from "./api";
 import { deleteAnhang, fetchAnhaenge, uploadAnhang } from "./anhaenge-api";
 
@@ -67,6 +68,14 @@ export function useDeleteEintrag() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteEintrag(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: EINTRAEGE_KEY }),
+  });
+}
+
+export function useWeitergabeEintrag() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => weitergabeEintrag(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: EINTRAEGE_KEY }),
   });
 }

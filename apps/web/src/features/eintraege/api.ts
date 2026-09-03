@@ -41,6 +41,11 @@ export async function deleteEintrag(id: string): Promise<void> {
   await apiClient.delete(`/eintraege/${id}`);
 }
 
+export async function weitergabeEintrag(id: string): Promise<SchichtbucheintragDetail> {
+  const { data } = await apiClient.post<SchichtbucheintragDetail>(`/eintraege/${id}/weitergabe`);
+  return data;
+}
+
 export async function addKommentar(
   id: string,
   payload: CreateKommentarRequest,
