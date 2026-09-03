@@ -224,54 +224,72 @@ export class UebergabenService {
     }
   }
 
+  /**
+   * Offene Störungen/laufende Arbeiten werden schichtübergreifend geführt: alle
+   * noch offenen bzw. in Bearbeitung befindlichen Meldungen des Gewerks (bis zum
+   * Ende des Übergabe-Tags) erscheinen, damit ein nicht abgeschlossenes Problem
+   * aus einer früheren Schicht/einem früheren Tag bis zur Erledigung in jeder
+   * Folgeübergabe sichtbar bleibt. Abgeschlossen wird dagegen genau die in
+   * dieser Schicht (Tag+Schicht) erledigte Arbeit zur Dokumentation geführt.
+   */
   private async eintraege(uebergabe: UebergabePayload) {
     const { start, end } = dayRange(uebergabe.datum);
-    const eintraege = await this.prisma.schichtbucheintrag.findMany({
-      where: {
-        deletedAt: null,
-        schichtId: uebergabe.schichtId,
-        gewerkId: uebergabe.gewerkId,
-        zeitpunkt: { gte: start, lt: end },
-        // Alle relevanten Status: offen/laufend werden übernommen, erledigt/
-        // verschoben zur Dokumentation mitgeführt (dürfen nicht "wegfallen").
-        status: {
-          in: [
-            EintragStatus.OFFEN,
-            EintragStatus.IN_BEARBEITUNG,
-            EintragStatus.ERLEDIGT,
-            EintragStatus.VERSCHOBEN,
-          ],
+    const [offeneLaufende, abgeschlosseneRoh] = await Promise.all([
+      this.prisma.schichtbucheintrag.findMany({
+        where: {
+          deletedAt: null,
+          gewerkId: uebergabe.gewerkId,
+          zeitpunkt: { lt: end },
+          status: { in: [EintragStatus.OFFEN, EintragStatus.IN_BEARBEITUNG] },
         },
-      },
-      include: EINTRAG_LIST_INCLUDE,
-      orderBy: [{ prioritaet: "desc" }, { zeitpunkt: "asc" }],
-    });
-    const list = eintraege.map((e) => toListItem(e));
+        include: EINTRAG_LIST_INCLUDE,
+        orderBy: [{ prioritaet: "desc" }, { zeitpunkt: "asc" }],
+      }),
+      this.prisma.schichtbucheintrag.findMany({
+        where: {
+          deletedAt: null,
+          schichtId: uebergabe.schichtId,
+          gewerkId: uebergabe.gewerkId,
+          zeitpunkt: { gte: start, lt: end },
+          status: { in: [EintragStatus.ERLEDIGT, EintragStatus.VERSCHOBEN] },
+        },
+        include: EINTRAG_LIST_INCLUDE,
+        orderBy: [{ prioritaet: "desc" }, { zeitpunkt: "asc" }],
+      }),
+    ]);
+    const offeneLaufendeListe = offeneLaufende.map((e) => toListItem(e));
     return {
-      offene: list.filter((e) => e.status === EintragStatus.OFFEN),
-      laufende: list.filter((e) => e.status === EintragStatus.IN_BEARBEITUNG),
-      abgeschlossen: list.filter(
-        (e) => e.status === EintragStatus.ERLEDIGT || e.status === EintragStatus.VERSCHOBEN,
-      ),
+      offene: offeneLaufendeListe.filter((e) => e.status === EintragStatus.OFFEN),
+      laufende: offeneLaufendeListe.filter((e) => e.status === EintragStatus.IN_BEARBEITUNG),
+      abgeschlossen: abgeschlosseneRoh.map((e) => toListItem(e)),
     };
   }
 
   private async kennzahlen(uebergabe: UebergabePayload) {
     const { start, end } = dayRange(uebergabe.datum);
-    const where: Prisma.SchichtbucheintragWhereInput = {
+    // Offen/laufend: gewerksweit, schichtübergreifend (bis Ende des Übergabe-Tags).
+    const offeneWhere: Prisma.SchichtbucheintragWhereInput = {
+      deletedAt: null,
+      gewerkId: uebergabe.gewerkId,
+      zeitpunkt: { lt: end },
+    };
+    // Abgeschlossen: nur in dieser Schicht (Tag + Schicht).
+    const abgeschlossenWhere: Prisma.SchichtbucheintragWhereInput = {
       deletedAt: null,
       schichtId: uebergabe.schichtId,
       gewerkId: uebergabe.gewerkId,
       zeitpunkt: { gte: start, lt: end },
     };
     const [offeneStoerungen, laufendeArbeiten, abgeschlosseneEintraege] = await Promise.all([
-      this.prisma.schichtbucheintrag.count({ where: { ...where, status: EintragStatus.OFFEN } }),
       this.prisma.schichtbucheintrag.count({
-        where: { ...where, status: EintragStatus.IN_BEARBEITUNG },
+        where: { ...offeneWhere, status: EintragStatus.OFFEN },
+      }),
+      this.prisma.schichtbucheintrag.count({
+        where: { ...offeneWhere, status: EintragStatus.IN_BEARBEITUNG },
       }),
       this.prisma.schichtbucheintrag.count({
         where: {
-          ...where,
+          ...abgeschlossenWhere,
           status: { in: [EintragStatus.ERLEDIGT, EintragStatus.VERSCHOBEN] },
         },
       }),
