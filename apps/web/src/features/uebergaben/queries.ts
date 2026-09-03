@@ -6,6 +6,7 @@ import type {
 } from "@schichtbuch/shared";
 import {
   deleteUebergabe,
+  fetchBenutzerFuerGewerk,
   fetchUebergabe,
   fetchUebergabeHistorie,
   fetchUebergaben,
@@ -68,5 +69,13 @@ export function useUebergabeHistorie(id: string | undefined) {
     queryKey: [...UEBERGABEN_KEY, "historie", id],
     queryFn: () => fetchUebergabeHistorie(id as string),
     enabled: !!id,
+  });
+}
+
+export function useBenutzerFuerGewerk(gewerkId: string | undefined) {
+  return useQuery({
+    queryKey: ["benutzer-auswahl", { gewerkId: gewerkId ?? null }],
+    queryFn: () => fetchBenutzerFuerGewerk(gewerkId),
+    enabled: !!gewerkId,
   });
 }

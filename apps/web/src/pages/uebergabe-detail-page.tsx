@@ -7,18 +7,12 @@ import { useAuth } from "@/features/auth/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { PrioritaetBadge, StatusBadge } from "@/features/eintraege/badges";
-import { useFormOptions } from "@/features/eintraege/queries";
 import { HistorieVerlauf } from "@/components/historie-verlauf";
 import { oeffneUebergabePdf } from "@/features/uebergaben/api";
 import {
+  useBenutzerFuerGewerk,
   useDeleteUebergabe,
   useUebergabe,
   useUebergabeHistorie,
@@ -26,8 +20,6 @@ import {
   useUpdateUebergabe,
 } from "@/features/uebergaben/queries";
 import { StatusUebergabeBadge } from "./uebergabe-page";
-
-const KEIN = "__kein__";
 
 const TEXTFELDER: { key: keyof UebergabeDetail; label: string; placeholder: string }[] = [
   {
@@ -65,7 +57,7 @@ export function UebergabeDetailPage() {
   const navigate = useNavigate();
   const { data: u, isLoading, isError, isFetching, refetch } = useUebergabe(id);
   const { data: historie = [], isLoading: historieLaedt } = useUebergabeHistorie(id);
-  const { data: options } = useFormOptions();
+  const { data: benutzer = [] } = useBenutzerFuerGewerk(u?.gewerk.id);
   const { user, hasPermission } = useAuth();
   const update = useUpdateUebergabe(id ?? "");
   const uebergeben = useUebergeben(id ?? "");
@@ -228,24 +220,15 @@ export function UebergabeDetailPage() {
               </div>
               <div className="w-64">
                 <label className="mb-1 block text-xs text-muted-foreground">
-                  Übernehmende Person (nächste Schicht)
+                  Übernehmende Person (nächste Schicht · {u.gewerk.name})
                 </label>
-                <Select
-                  value={uebernommenVonId || KEIN}
-                  onValueChange={(v) => setUebernommenVonId(v === KEIN ? "" : v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="—" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={KEIN}>— offen —</SelectItem>
-                    {(options?.benutzer ?? []).map((b) => (
-                      <SelectItem key={b.id} value={b.id}>
-                        {b.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Combobox
+                  value={uebernommenVonId}
+                  onChange={setUebernommenVonId}
+                  options={benutzer.map((b) => ({ value: b.id, label: b.name }))}
+                  emptyOption="— offen —"
+                  placeholder="Mitarbeiter suchen…"
+                />
               </div>
               <Button
                 variant="outline"

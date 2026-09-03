@@ -1,5 +1,5 @@
-import { Controller, Get } from "@nestjs/common";
-import { ApiTags } from "@nestjs/swagger";
+import { Controller, Get, Query } from "@nestjs/common";
+import { ApiQuery, ApiTags } from "@nestjs/swagger";
 import { PrismaService } from "../prisma/prisma.service";
 
 /**
@@ -12,10 +12,16 @@ import { PrismaService } from "../prisma/prisma.service";
 export class UserPickerController {
   constructor(private readonly prisma: PrismaService) {}
 
+  @ApiQuery({ name: "gewerkId", required: false })
   @Get("auswahl")
-  auswahl() {
+  auswahl(@Query("gewerkId") gewerkId?: string) {
     return this.prisma.user.findMany({
-      where: { status: "AKTIV", deletedAt: null },
+      where: {
+        status: "AKTIV",
+        deletedAt: null,
+        // Optional auf ein Gewerk einschränken (nur Mitarbeiter dieses Gewerks).
+        ...(gewerkId ? { gewerkeSichtbarkeit: { some: { id: gewerkId } } } : {}),
+      },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     });

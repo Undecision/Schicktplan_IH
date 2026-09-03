@@ -3,12 +3,21 @@ import type {
   GeneriereUebergabenMehrereRequest,
   GeneriereUebergabenMehrereResult,
   HistorieEintrag,
+  Referenz,
   UebergabeDetail,
   UebergabeFilter,
   UebergabeListItem,
   UpdateUebergabeRequest,
 } from "@schichtbuch/shared";
 import { apiClient } from "@/lib/api-client";
+
+/** Aktive Mitarbeiter, optional auf ein Gewerk eingeschränkt (für die Übernehmenden-Auswahl). */
+export async function fetchBenutzerFuerGewerk(gewerkId?: string): Promise<Referenz[]> {
+  const { data } = await apiClient.get<Referenz[]>("/users/auswahl", {
+    params: gewerkId ? { gewerkId } : {},
+  });
+  return data;
+}
 
 export async function fetchUebergaben(filter: UebergabeFilter): Promise<UebergabeListItem[]> {
   const { data } = await apiClient.get<UebergabeListItem[]>("/uebergaben", { params: filter });
