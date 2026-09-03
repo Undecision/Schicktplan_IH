@@ -2,11 +2,17 @@ import { Injectable } from "@nestjs/common";
 import {
   SCHICHTBUCH_SPALTEN_STANDARD,
   normalisiereSpaltenReihenfolge,
+  type IntegrationLinksConfig,
   type SchichtbuchSpaltenConfig,
 } from "@schichtbuch/shared";
 import { PrismaService } from "../prisma/prisma.service";
 
 const SPALTEN_KEY = "schichtbuch.spaltenReihenfolge";
+const INTEGRATION_KEY = "integration.links";
+
+function trimOderNull(wert: unknown): string | null {
+  return typeof wert === "string" && wert.trim() ? wert.trim() : null;
+}
 
 @Injectable()
 export class EinstellungenService {
@@ -34,5 +40,26 @@ export class EinstellungenService {
       update: { wert: { reihenfolge } },
     });
     return { reihenfolge };
+  }
+
+  async getIntegrationLinks(): Promise<IntegrationLinksConfig> {
+    const row = await this.prisma.appEinstellung.findUnique({ where: { key: INTEGRATION_KEY } });
+    const wert = (row?.wert ?? null) as Partial<IntegrationLinksConfig> | null;
+    return {
+      sapUrlTemplate: trimOderNull(wert?.sapUrlTemplate),
+      easyFlowUrlTemplate: trimOderNull(wert?.easyFlowUrlTemplate),
+    };
+  }
+
+  async setIntegrationLinks(config: IntegrationLinksConfig): Promise<IntegrationLinksConfig> {
+    const sapUrlTemplate = trimOderNull(config.sapUrlTemplate);
+    const easyFlowUrlTemplate = trimOderNull(config.easyFlowUrlTemplate);
+    const wert = { sapUrlTemplate, easyFlowUrlTemplate };
+    await this.prisma.appEinstellung.upsert({
+      where: { key: INTEGRATION_KEY },
+      create: { key: INTEGRATION_KEY, wert },
+      update: { wert },
+    });
+    return { sapUrlTemplate, easyFlowUrlTemplate };
   }
 }

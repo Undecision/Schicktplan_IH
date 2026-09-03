@@ -1,7 +1,21 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, Forward, Info, Pencil, Trash2 } from "lucide-react";
-import { EINTRAG_TYP_LABELS, EintragStatus, EintragTyp } from "@schichtbuch/shared";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ExternalLink,
+  Forward,
+  Info,
+  Pencil,
+  Trash2,
+} from "lucide-react";
+import {
+  baueIntegrationsLink,
+  EINTRAG_TYP_LABELS,
+  EintragStatus,
+  EintragTyp,
+} from "@schichtbuch/shared";
+import { useIntegrationLinks } from "@/features/einstellungen/queries";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +48,7 @@ export function EintragDetailPage() {
   const addKommentar = useAddKommentar();
   const loeschen = useDeleteEintrag();
   const weitergabe = useWeitergabeEintrag();
+  const { data: integration } = useIntegrationLinks();
   const [editOpen, setEditOpen] = useState(false);
   const [kommentarText, setKommentarText] = useState("");
 
@@ -165,8 +180,16 @@ export function EintragDetailPage() {
             <Detail label="Fachbereich" value={eintrag.fachbereich.name} />
             <Detail label="Technischer Platz" value={eintrag.technischerPlatz.name} />
             <Detail label="Ersteller" value={eintrag.ersteller.name} />
-            <Detail label="SAP-IH-Auftrag" value={eintrag.sapIhAuftrag ?? "—"} />
-            <Detail label="EasyFlow-TAG" value={eintrag.easyFlowTag ?? "—"} />
+            <DetailLink
+              label="SAP-IH-Auftrag"
+              value={eintrag.sapIhAuftrag}
+              href={baueIntegrationsLink(integration?.sapUrlTemplate, eintrag.sapIhAuftrag)}
+            />
+            <DetailLink
+              label="EasyFlow-TAG"
+              value={eintrag.easyFlowTag}
+              href={baueIntegrationsLink(integration?.easyFlowUrlTemplate, eintrag.easyFlowTag)}
+            />
             <Detail
               label="Bearbeitungsbeginn"
               value={eintrag.bearbeitungBeginn ? formatDateTime(eintrag.bearbeitungBeginn) : "—"}
@@ -244,6 +267,40 @@ function Detail({ label, value }: { label: string; value: string }) {
     <div>
       <p className="text-muted-foreground">{label}</p>
       <p className="font-medium">{value}</p>
+    </div>
+  );
+}
+
+/** Referenzfeld (SAP/EasyFlow): als externer Link, wenn eine URL-Vorlage greift. */
+function DetailLink({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value: string | null;
+  href: string | null;
+}) {
+  return (
+    <div>
+      <p className="text-muted-foreground">{label}</p>
+      {value ? (
+        href ? (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 font-medium text-primary underline"
+          >
+            {value}
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        ) : (
+          <p className="font-medium">{value}</p>
+        )
+      ) : (
+        <p className="font-medium">—</p>
+      )}
     </div>
   );
 }

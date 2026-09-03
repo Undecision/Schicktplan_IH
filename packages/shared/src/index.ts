@@ -8,6 +8,7 @@ export * from "./audit";
 export * from "./stammdaten";
 export * from "./eintraege";
 export * from "./schichtbuch-spalten";
+export * from "./integration";
 export * from "./anhaenge";
 export * from "./dashboard";
 export * from "./historie";

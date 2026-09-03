@@ -255,6 +255,10 @@ export function EintragFormDialog({
   const isEdit = !!eintrag;
   const effektiverTyp = eintrag?.typ ?? typ;
   const istStoerung = effektiverTyp === EintragTyp.STOERUNG;
+  // „Verschoben" ist bei Störungen nicht sinnvoll und wird dort ausgeblendet.
+  const statusWerte = istStoerung
+    ? EINTRAG_STATUS.filter((s) => s !== EintragStatus.VERSCHOBEN)
+    : EINTRAG_STATUS;
   const { data: options } = useFormOptions();
   const { user } = useAuth();
   const createMutation = useCreateEintrag();
@@ -462,7 +466,7 @@ export function EintragFormDialog({
               control={control}
               name="status"
               label="Status"
-              values={EINTRAG_STATUS}
+              values={statusWerte}
               labels={STATUS_LABELS}
             />
           </div>

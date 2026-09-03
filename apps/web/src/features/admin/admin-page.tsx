@@ -4,6 +4,7 @@ import { RolesManager } from "./roles-manager";
 import { StammdatenManager } from "./stammdaten/stammdaten-manager";
 import { STAMMDATEN_RESOURCES } from "./stammdaten/config";
 import { SchichtbuchSpaltenAdmin } from "./schichtbuch-spalten-admin";
+import { IntegrationenAdmin } from "./integrationen-admin";
 
 const STAMMDATEN_TABS = Object.values(STAMMDATEN_RESOURCES);
 
@@ -19,6 +20,7 @@ export function AdminPage() {
           </TabsTrigger>
         ))}
         <TabsTrigger value="schichtbuch-spalten">Schichtbuch-Spalten</TabsTrigger>
+        <TabsTrigger value="verknuepfungen">Verknüpfungen</TabsTrigger>
       </TabsList>
 
       <TabsContent value="benutzer">
@@ -37,6 +39,10 @@ export function AdminPage() {
 
       <TabsContent value="schichtbuch-spalten">
         <SchichtbuchSpaltenAdmin />
+      </TabsContent>
+
+      <TabsContent value="verknuepfungen">
+        <IntegrationenAdmin />
       </TabsContent>
     </Tabs>
   );

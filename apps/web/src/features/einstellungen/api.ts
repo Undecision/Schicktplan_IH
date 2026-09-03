@@ -1,4 +1,4 @@
-import type { SchichtbuchSpaltenConfig } from "@schichtbuch/shared";
+import type { IntegrationLinksConfig, SchichtbuchSpaltenConfig } from "@schichtbuch/shared";
 import { apiClient } from "@/lib/api-client";
 
 export async function fetchSchichtbuchSpalten(): Promise<SchichtbuchSpaltenConfig> {
@@ -14,6 +14,21 @@ export async function updateSchichtbuchSpalten(
   const { data } = await apiClient.put<SchichtbuchSpaltenConfig>(
     "/einstellungen/schichtbuch-spalten",
     { reihenfolge },
+  );
+  return data;
+}
+
+export async function fetchIntegrationLinks(): Promise<IntegrationLinksConfig> {
+  const { data } = await apiClient.get<IntegrationLinksConfig>("/einstellungen/integration-links");
+  return data;
+}
+
+export async function updateIntegrationLinks(
+  config: IntegrationLinksConfig,
+): Promise<IntegrationLinksConfig> {
+  const { data } = await apiClient.put<IntegrationLinksConfig>(
+    "/einstellungen/integration-links",
+    config,
   );
   return data;
 }
